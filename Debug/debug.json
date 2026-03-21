@@ -1,0 +1,170 @@
+{
+  "_header": {
+    "description": "APB Bus Generator Debug Information",
+    "generated_at": "2026-03-21 22:49:17",
+    "input_file": "APB_BUS_Example.xlsx",
+    "sheet_name": "MM-INFO",
+    "author": "ltthinh",
+    "page": "VLSI Technology"
+  },
+  "masters": [
+    {
+      "name": "CPU0",
+      "slaves": [
+        {
+          "name": "UART",
+          "address": "0x000000 - 0x0000FF"
+        },
+        {
+          "name": "I2C",
+          "address": "0x010000 - 0x01000F"
+        },
+        {
+          "name": "PWM",
+          "address": "0x005000 - 0x0050FF"
+        }
+      ]
+    },
+    {
+      "name": "CPU1",
+      "slaves": [
+        {
+          "name": "UART",
+          "address": "0x0000 - 0x00FF"
+        },
+        {
+          "name": "I2C",
+          "address": "0x2000 - 0x200F"
+        },
+        {
+          "name": "CAN",
+          "address": "0x4000 - 0xBFFF"
+        }
+      ]
+    },
+    {
+      "name": "GPU",
+      "slaves": [
+        {
+          "name": "I2C",
+          "address": "0x001000 - 0x00100F"
+        },
+        {
+          "name": "SPI",
+          "address": "0x000000 - 0x000FFF"
+        },
+        {
+          "name": "PCIe",
+          "address": "0x002000 - 0x101FFF"
+        }
+      ]
+    },
+    {
+      "name": "NPU",
+      "slaves": [
+        {
+          "name": "I2C",
+          "address": "0x000000 - 0x00000F"
+        }
+      ]
+    },
+    {
+      "name": "TPU",
+      "slaves": [
+        {
+          "name": "I2C",
+          "address": "0x1000 - 0x100F"
+        }
+      ]
+    },
+    {
+      "name": "PPU",
+      "slaves": [
+        {
+          "name": "I2C",
+          "address": "0x002000 - 0x00200F"
+        }
+      ]
+    }
+  ],
+  "slaves": [
+    {
+      "name": "UART",
+      "masters": [
+        {
+          "name": "CPU0",
+          "address": "0x000000 - 0x0000FF"
+        },
+        {
+          "name": "CPU1",
+          "address": "0x0000 - 0x00FF"
+        }
+      ]
+    },
+    {
+      "name": "I2C",
+      "masters": [
+        {
+          "name": "CPU0",
+          "address": "0x010000 - 0x01000F"
+        },
+        {
+          "name": "CPU1",
+          "address": "0x2000 - 0x200F"
+        },
+        {
+          "name": "GPU",
+          "address": "0x001000 - 0x00100F"
+        },
+        {
+          "name": "NPU",
+          "address": "0x000000 - 0x00000F"
+        },
+        {
+          "name": "TPU",
+          "address": "0x1000 - 0x100F"
+        },
+        {
+          "name": "PPU",
+          "address": "0x002000 - 0x00200F"
+        }
+      ]
+    },
+    {
+      "name": "SPI",
+      "masters": [
+        {
+          "name": "GPU",
+          "address": "0x000000 - 0x000FFF"
+        }
+      ]
+    },
+    {
+      "name": "CAN",
+      "masters": [
+        {
+          "name": "CPU1",
+          "address": "0x4000 - 0xBFFF"
+        }
+      ]
+    },
+    {
+      "name": "PWM",
+      "masters": [
+        {
+          "name": "CPU0",
+          "address": "0x005000 - 0x0050FF"
+        }
+      ]
+    },
+    {
+      "name": "PCIe",
+      "masters": [
+        {
+          "name": "GPU",
+          "address": "0x002000 - 0x101FFF"
+        }
+      ]
+    }
+  ]
+}
