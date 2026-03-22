@@ -66,11 +66,10 @@ These modules include:
 ├── sim/
 │   └── vcs/                      # VCS testbench and simulation
 └── lint/
-    ├── vc_static/                # Synopsys VC Static lint
-    │   ├── run_lint.sh           # Lint run script
-    │   ├── run_lint.tcl          # Lint configuration
-    │   └── VC_Waiver/            # Auto-generated waivers
-    └── verilator/                # Verilator lint (optional)
+    └── vc_static/                # Synopsys VC Static lint
+        ├── run_lint.sh           # Lint run script
+        ├── run_lint.tcl          # Lint configuration
+        └── VC_Waiver/            # Auto-generated waivers
 ```
 
 ## Quick Start
@@ -78,7 +77,6 @@ These modules include:
 ### 1. Setup Environment
 
 ```bash
-cd /home/ltthinh/apb_bus_generator_thang
 source source_me.sh
 ```
 
