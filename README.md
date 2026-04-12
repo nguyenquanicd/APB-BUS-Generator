@@ -1,9 +1,3 @@
-#--------------------------------------
-# APB Bus Generator - README
-# Author: Trthinh (Ethan), Thang Luong (superzeldalink)
-# Page: VLSI Technology
-#--------------------------------------
-
 # APB Bus Generator
 
 ## Overview
