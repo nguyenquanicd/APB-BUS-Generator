@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_decoder_ppu
 //Function: APB Decoder
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -27,7 +27,7 @@ module m_vlsi_decoder_ppu (
   // ============================================================================
   // Interface of Slave I2C
   // ============================================================================
-  output logic [23:0]   o_paddr_i2c,  // to I2C
+  output logic [3:0]   o_paddr_i2c,  // to I2C
   output logic          o_protect_en_i2c,
   output logic          o_slverr_en_i2c,
   output logic [2:0]    o_pprot_i2c,
@@ -72,7 +72,7 @@ module m_vlsi_decoder_ppu (
   assign o_psel_i2c    = w_sel[0] & i_psel;
   assign o_penable_i2c = i_penable;
   assign o_pwrite_i2c  = i_pwrite;
-  assign o_paddr_i2c   = i_paddr - 24'h002000;
+  assign o_paddr_i2c   = 4'(i_paddr - 24'h002000);
   assign o_pwdata_i2c  = i_pwdata;
   assign o_pstrb_i2c   = i_pstrb;
   assign o_protect_en_i2c = i_protect_en;

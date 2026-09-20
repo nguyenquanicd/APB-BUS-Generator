@@ -9,29 +9,89 @@ import json
 
 current_path = os.getcwd()
 script_path = os.path.dirname(os.path.realpath(__file__))
+# Fallback address width, used for any block the CFG sheet does not list.
 APB_ADDR_WD = 16
+# Per-block address widths from the CFG sheet, keyed by lowercase block name.
+MST_ADDR_WD = {}
+SLV_ADDR_WD = {}
 
-def detect_addr_width_from_cfg(workbook):
-    """Detect APB address width from CFG sheet (master/slave ADDRESS WIDTH tables)."""
+def mst_addr_wd(name):
+    """Address width of a master's APB port (global address space)."""
+    return MST_ADDR_WD.get(str(name).strip().lower(), APB_ADDR_WD)
+
+def slv_addr_wd(name):
+    """Address width of a slave's APB port (local, post-decode offset)."""
+    return SLV_ADDR_WD.get(str(name).strip().lower(), APB_ADDR_WD)
+
+def aw_lit(mst_name, value):
+    """Format an address literal at the declared width of the given master."""
+    wd = mst_addr_wd(mst_name)
+    return f"{wd}'h{value:0{(wd + 3) // 4}X}"
+
+def detect_addr_widths_from_cfg(workbook):
+    """Read per-master and per-slave address widths from the CFG sheet.
+
+    CFG holds two tables ("Table - Master Information", "Table - Slave
+    Information"), each with NAME and ADDRESS WIDTH columns. Returns
+    (master_widths, slave_widths, fallback_width), the width dicts keyed by
+    lowercase block name and the fallback being the widest declared value.
+    """
     if 'CFG' not in workbook.sheetnames:
-        return APB_ADDR_WD
+        return {}, {}, APB_ADDR_WD
     ws_cfg = workbook['CFG']
-    widths = []
 
+    # Locate the table titles so each header row can be attributed to a side.
+    titles = []  # (row, 'master'|'slave')
     for r in range(1, ws_cfg.max_row + 1):
         for c in range(1, ws_cfg.max_column + 1):
-            cell_val = ws_cfg.cell(row=r, column=c).value
-            if not (isinstance(cell_val, str) and "ADDRESS WIDTH" in cell_val.upper()):
+            v = ws_cfg.cell(row=r, column=c).value
+            if not isinstance(v, str) or "TABLE" not in v.upper():
                 continue
-            # Width values are listed below the "ADDRESS WIDTH" header column.
-            for rr in range(r + 1, ws_cfg.max_row + 1):
-                w = ws_cfg.cell(row=rr, column=c).value
-                if isinstance(w, (int, float)) and int(w) > 0:
-                    widths.append(int(w))
+            if "MASTER" in v.upper():
+                titles.append((r, 'master'))
+            elif "SLAVE" in v.upper():
+                titles.append((r, 'slave'))
+    titles.sort()
 
-    if widths:
-        return max(widths)
-    return APB_ADDR_WD
+    def side_of(row):
+        side = None
+        for title_row, title_side in titles:
+            if title_row > row:
+                break
+            side = title_side
+        return side
+
+    # A header row is one carrying both NAME and ADDRESS WIDTH.
+    headers = []
+    for r in range(1, ws_cfg.max_row + 1):
+        name_col = width_col = None
+        for c in range(1, ws_cfg.max_column + 1):
+            v = ws_cfg.cell(row=r, column=c).value
+            if not isinstance(v, str):
+                continue
+            u = v.strip().upper()
+            if u == "NAME":
+                name_col = c
+            elif "ADDRESS WIDTH" in u:
+                width_col = c
+        if name_col and width_col:
+            headers.append((r, name_col, width_col))
+
+    mst_w, slv_w = {}, {}
+    for idx, (hdr_row, name_col, width_col) in enumerate(headers):
+        # A table ends where the next one begins.
+        stop = headers[idx + 1][0] if idx + 1 < len(headers) else ws_cfg.max_row + 1
+        target = slv_w if side_of(hdr_row) == 'slave' else mst_w
+        for r in range(hdr_row + 1, stop):
+            name = ws_cfg.cell(row=r, column=name_col).value
+            width = ws_cfg.cell(row=r, column=width_col).value
+            if name is None or not str(name).strip():
+                continue  # units/description sub-header or spacer row
+            if isinstance(width, (int, float)) and int(width) > 0:
+                target[str(name).strip().lower()] = int(width)
+
+    declared = list(mst_w.values()) + list(slv_w.values())
+    return mst_w, slv_w, max(declared) if declared else APB_ADDR_WD
 
 def calculate_offsets(cell_value, start_address=0x0):
     units = {
@@ -92,14 +152,18 @@ class master:
         
         # Calculate max slave name length for alignment
         max_slv_len = max([len(slv) for slv in self.slv]) if len(self.slv) > 0 else 0
-        
+
+        # The master side sees global addresses; each slave port carries the
+        # local (base-subtracted) offset, so the two are sized independently.
+        mst_wd = mst_addr_wd(self.name)
+
         # Port declaration for master interface
         port_rtl_com += "  // ============================================================================\n"
         port_rtl_com += f"  // Interface of Master {self.name.upper()}\n"
         port_rtl_com += "  // ============================================================================\n"
         # port_rtl_com += "  input  logic          i_clk,\n"
         # port_rtl_com += "  input  logic          i_rstn,\n"
-        port_rtl_com += f"  input  logic [{APB_ADDR_WD-1}:0]   i_paddr,\n"
+        port_rtl_com += f"  input  logic [{mst_wd-1}:0]   i_paddr,\n"
         port_rtl_com += "  input  logic          i_protect_en,\n"
         port_rtl_com += "  input  logic          i_slverr_en,\n"
         port_rtl_com += "  input  logic [2:0]    i_pprot,\n"
@@ -120,7 +184,7 @@ class master:
             port_rtl_com += "  // ============================================================================\n"
             port_rtl_com += f"  // Interface of Slave {slv_name_upper}\n"
             port_rtl_com += "  // ============================================================================\n"
-            port_rtl_com += f"  output logic [{APB_ADDR_WD-1}:0]   o_paddr_{slv_name_lower},  // to {slv_name_upper}\n"
+            port_rtl_com += f"  output logic [{slv_addr_wd(slv_name)-1}:0]   o_paddr_{slv_name_lower},  // to {slv_name_upper}\n"
             port_rtl_com += f"  output logic          o_protect_en_{slv_name_lower},\n"
             port_rtl_com += f"  output logic          o_slverr_en_{slv_name_lower},\n"
             port_rtl_com += f"  output logic [2:0]    o_pprot_{slv_name_lower},\n"
@@ -148,6 +212,21 @@ class master:
                 end_addr = start_addr
             slv_addr_ranges.append((start_addr, end_addr))
 
+            # A range that does not fit the declared widths would be silently
+            # truncated in the emitted literals, so reject it up front.
+            lo, hi = int(start_addr, 16), int(end_addr, 16)
+            if hi >> mst_wd:
+                print(f"ERROR: {self.name.upper()}->{self.slv[s].upper()} range ends at "
+                      f"0x{hi:X}, which does not fit the {mst_wd}-bit address width "
+                      f"declared for master {self.name.upper()}")
+                sys.exit(1)
+            slv_wd = slv_addr_wd(self.slv[s])
+            if (hi - lo) >> slv_wd:
+                print(f"ERROR: {self.name.upper()}->{self.slv[s].upper()} window spans "
+                      f"0x{hi - lo + 1:X} bytes, which does not fit the {slv_wd}-bit "
+                      f"address width declared for slave {self.slv[s].upper()}")
+                sys.exit(1)
+
         # Internal select signals
         if len(self.slv) > 0:
             addr_decode_rtl = "  logic [" + str(len(self.slv)-1) + ":0] w_sel;\n\n"
@@ -158,7 +237,15 @@ class master:
                 slv_name = self.slv[s]
                 slv_name_upper = slv_name.upper()
                 start_addr, end_addr = slv_addr_ranges[s]
-                addr_decode_rtl += f"  assign w_sel[{s}] = (i_paddr >= {APB_ADDR_WD}'h{start_addr}) & (i_paddr <= {APB_ADDR_WD}'h{end_addr});  // {slv_name_upper}\n"
+                # Drop bounds that the master's address width already guarantees,
+                # which would otherwise synthesise (and lint) as constant-true.
+                bounds = []
+                if int(start_addr, 16) > 0:
+                    bounds.append(f"(i_paddr >= {mst_wd}'h{start_addr})")
+                if int(end_addr, 16) < (1 << mst_wd) - 1:
+                    bounds.append(f"(i_paddr <= {mst_wd}'h{end_addr})")
+                decode_expr = " & ".join(bounds) if bounds else "1'b1"
+                addr_decode_rtl += f"  assign w_sel[{s}] = {decode_expr};  // {slv_name_upper}\n"
         # PREADY, PSLVERR, PRDATA logic
         pready_pslverr_prdata_rtl = "  // ============================================================================\n"
         pready_pslverr_prdata_rtl += "  // PREADY, PSLVERR, PRDATA Logic\n"
@@ -196,7 +283,8 @@ class master:
             slave_select_rtl += f"  assign o_psel_{slv_name_lower:<{max_slv_len}}    = w_sel[{s}] & i_psel;\n"
             slave_select_rtl += f"  assign o_penable_{slv_name_lower:<{max_slv_len}} = i_penable;\n"
             slave_select_rtl += f"  assign o_pwrite_{slv_name_lower:<{max_slv_len}}  = i_pwrite;\n"
-            slave_select_rtl += f"  assign o_paddr_{slv_name_lower:<{max_slv_len}}   = i_paddr - {APB_ADDR_WD}'h{start_addr};\n"
+            offset_expr = "i_paddr" if int(start_addr, 16) == 0 else f"i_paddr - {mst_wd}'h{start_addr}"
+            slave_select_rtl += f"  assign o_paddr_{slv_name_lower:<{max_slv_len}}   = {slv_addr_wd(slv_name)}'({offset_expr});\n"
             slave_select_rtl += f"  assign o_pwdata_{slv_name_lower:<{max_slv_len}}  = i_pwdata;\n"
             slave_select_rtl += f"  assign o_pstrb_{slv_name_lower:<{max_slv_len}}   = i_pstrb;\n"
             slave_select_rtl += f"  assign o_protect_en_{slv_name_lower:<{max_slv_len}} = i_protect_en;\n"
@@ -225,7 +313,7 @@ class slave:
         self.addr_4_mst.append(addr)
     def apb_mst(self):
         self.data_wd = 32
-        self.addr_wd = APB_ADDR_WD
+        self.addr_wd = slv_addr_wd(self.name)
         self.port_list_mst = []
         self.port_list = []
         for i in self.mst:
@@ -281,7 +369,7 @@ class slave:
             port_rtl_com += "  // ============================================================================\n"
             port_rtl_com += "  input  logic          i_clk,\n"
             port_rtl_com += "  input  logic          i_rstn,\n"
-            port_rtl_com += f"  output logic [{APB_ADDR_WD-1}:0]   o_paddr,\n"
+            port_rtl_com += f"  output logic [{self.addr_wd-1}:0]   o_paddr,\n"
             port_rtl_com += "  output logic          o_protect_en,\n"
             port_rtl_com += "  output logic          o_slverr_en,\n"
             port_rtl_com += "  output logic [2:0]    o_pprot,\n"
@@ -301,7 +389,7 @@ class slave:
                 port_rtl_com += "  // ============================================================================\n"
                 port_rtl_com += f"  // Master Interface {mst_idx+1}: {mst_name_upper}\n"
                 port_rtl_com += "  // ============================================================================\n"
-                port_rtl_com += f"  input  logic [{APB_ADDR_WD-1}:0]   i_paddr_{mst_name_lower},\n"
+                port_rtl_com += f"  input  logic [{self.addr_wd-1}:0]   i_paddr_{mst_name_lower},\n"
                 port_rtl_com += f"  input  logic          i_protect_en_{mst_name_lower},\n"
                 port_rtl_com += f"  input  logic          i_slverr_en_{mst_name_lower},\n"
                 port_rtl_com += f"  input  logic [2:0]    i_pprot_{mst_name_lower},\n"
@@ -426,7 +514,7 @@ class slave:
             port_rtl_com += "  // ============================================================================\n"
             port_rtl_com += "  input  logic          i_clk,\n"
             port_rtl_com += "  input  logic          i_rstn,\n"
-            port_rtl_com += f"  output logic [{APB_ADDR_WD-1}:0]   o_paddr,\n"
+            port_rtl_com += f"  output logic [{self.addr_wd-1}:0]   o_paddr,\n"
             port_rtl_com += "  output logic          o_protect_en,\n"
             port_rtl_com += "  output logic          o_slverr_en,\n"
             port_rtl_com += "  output logic [2:0]    o_pprot,\n"
@@ -445,7 +533,7 @@ class slave:
             port_rtl_com += "  // ============================================================================\n"
             port_rtl_com += f"  // Master Interface: {mst_name_upper}\n"
             port_rtl_com += "  // ============================================================================\n"
-            port_rtl_com += f"  input  logic [{APB_ADDR_WD-1}:0]   i_paddr_{mst_name_lower},\n"
+            port_rtl_com += f"  input  logic [{self.addr_wd-1}:0]   i_paddr_{mst_name_lower},\n"
             port_rtl_com += f"  input  logic          i_protect_en_{mst_name_lower},\n"
             port_rtl_com += f"  input  logic          i_slverr_en_{mst_name_lower},\n"
             port_rtl_com += f"  input  logic [2:0]    i_pprot_{mst_name_lower},\n"
@@ -528,7 +616,7 @@ class apb_router:
             mst_lower = mst.lower()
             mst_upper = mst.upper()
             content += f"  // Master: {mst_upper}\n"
-            content += f"  input  logic [{APB_ADDR_WD-1}:0]   i_paddr_{mst_lower},\n"
+            content += f"  input  logic [{mst_addr_wd(mst)-1}:0]   i_paddr_{mst_lower},\n"
             content += f"  input  logic          i_protect_en_{mst_lower},\n"
             content += f"  input  logic          i_slverr_en_{mst_lower},\n"
             content += f"  input  logic [2:0]    i_pprot_{mst_lower},\n"
@@ -550,7 +638,7 @@ class apb_router:
             slv_lower = slv.lower()
             slv_upper = slv.upper()
             content += f"  // Slave: {slv_upper}\n"
-            content += f"  output logic [{APB_ADDR_WD-1}:0]   o_paddr_{slv_lower},\n"
+            content += f"  output logic [{slv_addr_wd(slv)-1}:0]   o_paddr_{slv_lower},\n"
             content += f"  output logic          o_protect_en_{slv_lower},\n"
             content += f"  output logic          o_slverr_en_{slv_lower},\n"
             content += f"  output logic [2:0]    o_pprot_{slv_lower},\n"
@@ -596,7 +684,7 @@ class apb_router:
             mst_lower = mst.lower()
             for slv in sorted(set(mst_obj.slv)):
                 slv_lower = slv.lower()
-                content += f"  logic [{APB_ADDR_WD-1}:0]   w_dec_paddr_{slv_lower}_{mst_lower};\n"
+                content += f"  logic [{slv_addr_wd(slv)-1}:0]   w_dec_paddr_{slv_lower}_{mst_lower};\n"
                 content += f"  logic          w_dec_protect_en_{slv_lower}_{mst_lower};\n"
                 content += f"  logic          w_dec_slverr_en_{slv_lower}_{mst_lower};\n"
                 content += f"  logic [2:0]    w_dec_pprot_{slv_lower}_{mst_lower};\n"
@@ -781,16 +869,21 @@ class apb_router:
         content = ""
         content += "`timescale 1ns/1ps\n\n"
         content += "module tb;\n"
-        content += f"  localparam int ADDR_W = {APB_ADDR_WD};\n"
         content += "  localparam int DATA_W = 32;\n"
-        content += "  localparam int SLV_MEM_AW = 16;\n\n"
+        # Each block carries its own declared address width; the slave widths
+        # also size the slave BFM memories.
+        for mst in self.mst_names:
+            content += f"  localparam int MST_ADDR_W_{mst.upper()} = {mst_addr_wd(mst)};\n"
+        for slv in self.slv_names:
+            content += f"  localparam int SLV_ADDR_W_{slv.upper()} = {slv_addr_wd(slv)};\n"
+        content += "\n"
         content += "  logic clk;\n"
         content += "  logic rst_n;\n\n"
 
         # Master-side bus declarations
         for mst in self.mst_names:
             m = mst.lower()
-            content += f"  logic [ADDR_W-1:0] {m}_paddr;\n"
+            content += f"  logic [MST_ADDR_W_{mst.upper()}-1:0] {m}_paddr;\n"
             content += f"  logic [DATA_W-1:0] {m}_pwdata;\n"
             content += f"  logic [DATA_W-1:0] {m}_prdata;\n"
             content += f"  logic              {m}_pwrite;\n"
@@ -804,7 +897,7 @@ class apb_router:
         # Slave-side bus declarations
         for slv in self.slv_names:
             s = slv.lower()
-            content += f"  logic [ADDR_W-1:0] {s}_paddr;\n"
+            content += f"  logic [SLV_ADDR_W_{slv.upper()}-1:0] {s}_paddr;\n"
             content += f"  logic              {s}_protect_en;\n"
             content += f"  logic              {s}_slverr_en;\n"
             content += f"  logic [2:0]        {s}_pprot;\n"
@@ -824,7 +917,7 @@ class apb_router:
         # Master BFMs
         for mst in self.mst_names:
             m = mst.lower()
-            content += f"  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_{m}_bfm (\n"
+            content += f"  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_{mst.upper()}), .PARA_DATA_WIDTH(DATA_W)) u_{m}_bfm (\n"
             content += "    .i_clk(clk), .i_rst_n(rst_n),\n"
             content += f"    .o_paddr({m}_paddr), .o_pwdata({m}_pwdata), .i_prdata({m}_prdata),\n"
             content += f"    .o_pwrite({m}_pwrite), .o_psel({m}_psel), .o_penable({m}_penable),\n"
@@ -854,11 +947,11 @@ class apb_router:
         for slv in self.slv_names:
             s = slv.lower()
             content += "  apb_slave_bfm #(\n"
-            content += "    .PARA_ADDR_WIDTH(SLV_MEM_AW),\n"
+            content += f"    .PARA_ADDR_WIDTH(SLV_ADDR_W_{slv.upper()}),\n"
             content += "    .PARA_DATA_WIDTH(DATA_W),\n"
             content += "    .PARA_APB_WAIT_STATES(1)\n"
             content += f"  ) u_{s}_bfm (\n"
-            content += f"    .i_clk(clk), .i_rst_n(rst_n), .i_paddr({s}_paddr[SLV_MEM_AW-1:0]), .i_pwdata({s}_pwdata), .o_prdata({s}_prdata),\n"
+            content += f"    .i_clk(clk), .i_rst_n(rst_n), .i_paddr({s}_paddr), .i_pwdata({s}_pwdata), .o_prdata({s}_prdata),\n"
             content += f"    .i_pwrite({s}_pwrite), .i_psel({s}_psel), .i_penable({s}_penable), .o_pready({s}_pready),\n"
             content += f"    .o_pslverr({s}_pslverr), .i_pstrb({s}_pstrb), .i_pprot({s}_pprot)\n"
             content += "  );\n\n"
@@ -868,7 +961,7 @@ class apb_router:
             s = slv.lower()
             content += f"  logic              {s}_psel_d;\n"
             content += f"  logic              {s}_penable_d;\n"
-            content += f"  logic [ADDR_W-1:0] {s}_paddr_d;\n"
+            content += f"  logic [SLV_ADDR_W_{slv.upper()}-1:0] {s}_paddr_d;\n"
             content += f"  logic              {s}_pwrite_d;\n"
             content += f"  logic [3:0]        {s}_pstrb_d;\n"
             content += f"  logic [2:0]        {s}_pprot_d;\n"
@@ -943,8 +1036,9 @@ class apb_router:
                     start_addr = parse_start_addr(mst.slv_addr[slv_idx])
                 except Exception:
                     continue
-                if start_addr >= (1 << APB_ADDR_WD):
-                    content += f"    // Skipped {mst.name.upper()}->{slv.upper()} test: address 0x{start_addr:08X} exceeds ADDR_W={APB_ADDR_W}\n\n"
+                mst_wd = mst_addr_wd(mst.name)
+                if start_addr >= (1 << mst_wd):
+                    content += f"    // Skipped {mst.name.upper()}->{slv.upper()} test: address 0x{start_addr:08X} exceeds {mst.name.upper()} address width {mst_wd}\n\n"
                     continue
                 # keep access word-aligned and small offset
                 test_addr = start_addr & 0xFFFF_FFFC
@@ -952,8 +1046,8 @@ class apb_router:
                 content += f"    fork : txn_{pattern}\n"
                 content += "      begin\n"
                 content += f"        $display(\"Running {mst.name.upper()}->{slv.upper()} @ 0x{test_addr:08X}\");\n"
-                content += f"        u_{m}_bfm.write(32'h{test_addr:08X}, 32'h{test_data:08X});\n"
-                content += f"        u_{m}_bfm.read(32'h{test_addr:08X}, rdata);\n"
+                content += f"        u_{m}_bfm.write({aw_lit(m, test_addr)}, 32'h{test_data:08X});\n"
+                content += f"        u_{m}_bfm.read({aw_lit(m, test_addr)}, rdata);\n"
                 content += f"        check_data(\"{mst.name.upper()}->{slv.upper()}\", rdata, 32'h{test_data:08X});\n"
                 content += "      end\n"
                 content += "      begin\n"
@@ -1002,12 +1096,12 @@ class apb_router:
                 content += "      begin\n"
                 content += f"        $display(\"Running contention {slv.name.upper()}: {c0[0].upper()}@0x{a0:08X} || {c1[0].upper()}@0x{a1:08X}\");\n"
                 content += "        fork\n"
-                content += f"          begin u_{m0}_bfm.write(32'h{a0:08X}, 32'h{d0:08X}); end\n"
-                content += f"          begin u_{m1}_bfm.write(32'h{a1:08X}, 32'h{d1:08X}); end\n"
+                content += f"          begin u_{m0}_bfm.write({aw_lit(m0, a0)}, 32'h{d0:08X}); end\n"
+                content += f"          begin u_{m1}_bfm.write({aw_lit(m1, a1)}, 32'h{d1:08X}); end\n"
                 content += "        join\n"
-                content += f"        u_{m0}_bfm.read(32'h{a0:08X}, rdata);\n"
+                content += f"        u_{m0}_bfm.read({aw_lit(m0, a0)}, rdata);\n"
                 content += f"        check_data(\"ARB-{slv.name.upper()}-{c0[0].upper()}\", rdata, 32'h{d0:08X});\n"
-                content += f"        u_{m1}_bfm.read(32'h{a1:08X}, rdata);\n"
+                content += f"        u_{m1}_bfm.read({aw_lit(m1, a1)}, rdata);\n"
                 content += f"        check_data(\"ARB-{slv.name.upper()}-{c1[0].upper()}\", rdata, 32'h{d1:08X});\n"
                 content += "      end\n"
                 content += "      begin\n"
@@ -1024,10 +1118,10 @@ class apb_router:
                 content += f"    fork : txn_{pattern}\n"
                 content += "      begin\n"
                 content += f"        $display(\"Running read-contention {slv.name.upper()}: {c0[0].upper()}@0x{a0:08X} || {c1[0].upper()}@0x{a1_base:08X}\");\n"
-                content += f"        u_{m0}_bfm.write(32'h{a0:08X}, 32'h{d_read:08X});\n"
+                content += f"        u_{m0}_bfm.write({aw_lit(m0, a0)}, 32'h{d_read:08X});\n"
                 content += "        fork\n"
-                content += f"          begin logic [31:0] rdata_{m0}; u_{m0}_bfm.read(32'h{a0:08X}, rdata_{m0}); check_data(\"ARB-RD-{slv.name.upper()}-{c0[0].upper()}\", rdata_{m0}, 32'h{d_read:08X}); end\n"
-                content += f"          begin logic [31:0] rdata_{m1}; u_{m1}_bfm.read(32'h{a1_base:08X}, rdata_{m1}); check_data(\"ARB-RD-{slv.name.upper()}-{c1[0].upper()}\", rdata_{m1}, 32'h{d_read:08X}); end\n"
+                content += f"          begin logic [31:0] rdata_{m0}; u_{m0}_bfm.read({aw_lit(m0, a0)}, rdata_{m0}); check_data(\"ARB-RD-{slv.name.upper()}-{c0[0].upper()}\", rdata_{m0}, 32'h{d_read:08X}); end\n"
+                content += f"          begin logic [31:0] rdata_{m1}; u_{m1}_bfm.read({aw_lit(m1, a1_base)}, rdata_{m1}); check_data(\"ARB-RD-{slv.name.upper()}-{c1[0].upper()}\", rdata_{m1}, 32'h{d_read:08X}); end\n"
                 content += "        join\n"
                 content += "      end\n"
                 content += "      begin\n"
@@ -1049,12 +1143,12 @@ class apb_router:
                 for c_idx, c in enumerate(contenders):
                     m = c[0].lower()
                     a = pick_word_addr(c[1], c[2], (it * (len(contenders) + 1)) + c_idx)
-                    content += f"          begin u_{m}_bfm.write(32'h{a:08X}, 32'h{d_shared:08X}); end\n"
+                    content += f"          begin u_{m}_bfm.write({aw_lit(m, a)}, 32'h{d_shared:08X}); end\n"
                 content += "        join\n"
                 for c_idx, c in enumerate(contenders):
                     m = c[0].lower()
                     a = pick_word_addr(c[1], c[2], (it * (len(contenders) + 1)) + c_idx)
-                    content += f"        u_{m}_bfm.read(32'h{a:08X}, rdata);\n"
+                    content += f"        u_{m}_bfm.read({aw_lit(m, a)}, rdata);\n"
                     content += f"        check_data(\"STR-{slv.name.upper()}-{c[0].upper()}-{it}\", rdata, 32'h{d_shared:08X});\n"
             content += "      end\n"
             content += "      begin\n"
@@ -1107,9 +1201,9 @@ class apb_router:
                 content += f"            for (rr_k_{m} = 0; rr_k_{m} < {rr_rounds}; rr_k_{m}++) begin\n"
                 content += f"              rr_wop_{m} = rr_k_{m} * 2;\n"
                 content += f"              rr_rop_{m} = rr_wop_{m} + 1;\n"
-                content += f"              u_{m}_bfm.write(32'h{a:08X}, (32'h{rr_data_base:08X} + rr_k_{m}));\n"
+                content += f"              u_{m}_bfm.write({aw_lit(m, a)}, (32'h{rr_data_base:08X} + rr_k_{m}));\n"
                 content += f"              rr_done_t_{slv.name.lower()}[{c_idx}][rr_wop_{m}] = $time;\n"
-                content += f"              u_{m}_bfm.read(32'h{a:08X}, rr_rd_{m});\n"
+                content += f"              u_{m}_bfm.read({aw_lit(m, a)}, rr_rd_{m});\n"
                 content += f"              check_data($sformatf(\"RRRW-{slv.name.upper()}-{c[0].upper()}-%0d\", rr_k_{m}), rr_rd_{m}, (32'h{rr_data_base:08X} + rr_k_{m}));\n"
                 content += f"              rr_done_t_{slv.name.lower()}[{c_idx}][rr_rop_{m}] = $time;\n"
                 content += "            end\n"
@@ -1167,15 +1261,15 @@ class apb_router:
                     content += "      begin\n"
                     content += f"        $display(\"Running 3-way contention {slv.name.upper()}: {c0[0].upper()} || {c1[0].upper()} || {c2[0].upper()}\");\n"
                     content += "        fork\n"
-                    content += f"          begin u_{m0}_bfm.write(32'h{a0:08X}, 32'h{d0:08X}); end\n"
-                    content += f"          begin u_{m1}_bfm.write(32'h{a1:08X}, 32'h{d1:08X}); end\n"
-                    content += f"          begin u_{m2}_bfm.write(32'h{a2:08X}, 32'h{d2:08X}); end\n"
+                    content += f"          begin u_{m0}_bfm.write({aw_lit(m0, a0)}, 32'h{d0:08X}); end\n"
+                    content += f"          begin u_{m1}_bfm.write({aw_lit(m1, a1)}, 32'h{d1:08X}); end\n"
+                    content += f"          begin u_{m2}_bfm.write({aw_lit(m2, a2)}, 32'h{d2:08X}); end\n"
                     content += "        join\n"
-                    content += f"        u_{m0}_bfm.read(32'h{a0:08X}, rdata);\n"
+                    content += f"        u_{m0}_bfm.read({aw_lit(m0, a0)}, rdata);\n"
                     content += f"        check_data(\"ARB3-{slv.name.upper()}-{c0[0].upper()}\", rdata, 32'h{d0:08X});\n"
-                    content += f"        u_{m1}_bfm.read(32'h{a1:08X}, rdata);\n"
+                    content += f"        u_{m1}_bfm.read({aw_lit(m1, a1)}, rdata);\n"
                     content += f"        check_data(\"ARB3-{slv.name.upper()}-{c1[0].upper()}\", rdata, 32'h{d1:08X});\n"
-                    content += f"        u_{m2}_bfm.read(32'h{a2:08X}, rdata);\n"
+                    content += f"        u_{m2}_bfm.read({aw_lit(m2, a2)}, rdata);\n"
                     content += f"        check_data(\"ARB3-{slv.name.upper()}-{c2[0].upper()}\", rdata, 32'h{d2:08X});\n"
                     content += "      end\n"
                     content += "      begin\n"
@@ -1191,11 +1285,11 @@ class apb_router:
                     content += f"    fork : txn_{pattern}\n"
                     content += "      begin\n"
                     content += f"        $display(\"Running 3-way read-contention {slv.name.upper()}: {c0[0].upper()}@0x{a0:08X} || {c1[0].upper()}@0x{a1_base:08X} || {c2[0].upper()}@0x{a2_base:08X}\");\n"
-                    content += f"        u_{m0}_bfm.write(32'h{a0:08X}, 32'h{d_read:08X});\n"
+                    content += f"        u_{m0}_bfm.write({aw_lit(m0, a0)}, 32'h{d_read:08X});\n"
                     content += "        fork\n"
-                    content += f"          begin logic [31:0] rdata_{m0}; u_{m0}_bfm.read(32'h{a0:08X}, rdata_{m0}); check_data(\"ARB3-RD-{slv.name.upper()}-{c0[0].upper()}\", rdata_{m0}, 32'h{d_read:08X}); end\n"
-                    content += f"          begin logic [31:0] rdata_{m1}; u_{m1}_bfm.read(32'h{a1_base:08X}, rdata_{m1}); check_data(\"ARB3-RD-{slv.name.upper()}-{c1[0].upper()}\", rdata_{m1}, 32'h{d_read:08X}); end\n"
-                    content += f"          begin logic [31:0] rdata_{m2}; u_{m2}_bfm.read(32'h{a2_base:08X}, rdata_{m2}); check_data(\"ARB3-RD-{slv.name.upper()}-{c2[0].upper()}\", rdata_{m2}, 32'h{d_read:08X}); end\n"
+                    content += f"          begin logic [31:0] rdata_{m0}; u_{m0}_bfm.read({aw_lit(m0, a0)}, rdata_{m0}); check_data(\"ARB3-RD-{slv.name.upper()}-{c0[0].upper()}\", rdata_{m0}, 32'h{d_read:08X}); end\n"
+                    content += f"          begin logic [31:0] rdata_{m1}; u_{m1}_bfm.read({aw_lit(m1, a1_base)}, rdata_{m1}); check_data(\"ARB3-RD-{slv.name.upper()}-{c1[0].upper()}\", rdata_{m1}, 32'h{d_read:08X}); end\n"
+                    content += f"          begin logic [31:0] rdata_{m2}; u_{m2}_bfm.read({aw_lit(m2, a2_base)}, rdata_{m2}); check_data(\"ARB3-RD-{slv.name.upper()}-{c2[0].upper()}\", rdata_{m2}, 32'h{d_read:08X}); end\n"
                     content += "        join\n"
                     content += "      end\n"
                     content += "      begin\n"
@@ -1375,7 +1469,7 @@ class apb_router:
             print("Warning: README.md not found at " + src_path)
 
 def main(args=None):
-    global APB_ADDR_WD
+    global APB_ADDR_WD, MST_ADDR_WD, SLV_ADDR_WD
 
     if args is None:
         args = argv[1:]
@@ -1392,7 +1486,7 @@ def main(args=None):
         return 1
 
     wb = openpyxl.load_workbook(input_file, data_only=True)
-    APB_ADDR_WD = detect_addr_width_from_cfg(wb)
+    MST_ADDR_WD, SLV_ADDR_WD, APB_ADDR_WD = detect_addr_widths_from_cfg(wb)
     ws = wb[sheet_name]
 
     # Create output directories first

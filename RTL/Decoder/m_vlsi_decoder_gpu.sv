@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_decoder_gpu
 //Function: APB Decoder
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -27,7 +27,7 @@ module m_vlsi_decoder_gpu (
   // ============================================================================
   // Interface of Slave I2C
   // ============================================================================
-  output logic [23:0]   o_paddr_i2c,  // to I2C
+  output logic [3:0]   o_paddr_i2c,  // to I2C
   output logic          o_protect_en_i2c,
   output logic          o_slverr_en_i2c,
   output logic [2:0]    o_pprot_i2c,
@@ -42,7 +42,7 @@ module m_vlsi_decoder_gpu (
   // ============================================================================
   // Interface of Slave SPI
   // ============================================================================
-  output logic [23:0]   o_paddr_spi,  // to SPI
+  output logic [11:0]   o_paddr_spi,  // to SPI
   output logic          o_protect_en_spi,
   output logic          o_slverr_en_spi,
   output logic [2:0]    o_pprot_spi,
@@ -57,7 +57,7 @@ module m_vlsi_decoder_gpu (
   // ============================================================================
   // Interface of Slave PCIE
   // ============================================================================
-  output logic [23:0]   o_paddr_pcie,  // to PCIE
+  output logic [19:0]   o_paddr_pcie,  // to PCIE
   output logic          o_protect_en_pcie,
   output logic          o_slverr_en_pcie,
   output logic [2:0]    o_pprot_pcie,
@@ -76,7 +76,7 @@ module m_vlsi_decoder_gpu (
   // Address Decode Logic
   // ============================================================================
   assign w_sel[0] = (i_paddr >= 24'h001000) & (i_paddr <= 24'h00100F);  // I2C
-  assign w_sel[1] = (i_paddr >= 24'h000000) & (i_paddr <= 24'h000FFF);  // SPI
+  assign w_sel[1] = (i_paddr <= 24'h000FFF);  // SPI
   assign w_sel[2] = (i_paddr >= 24'h002000) & (i_paddr <= 24'h101FFF);  // PCIE
 
   // ============================================================================
@@ -114,7 +114,7 @@ module m_vlsi_decoder_gpu (
   assign o_psel_i2c     = w_sel[0] & i_psel;
   assign o_penable_i2c  = i_penable;
   assign o_pwrite_i2c   = i_pwrite;
-  assign o_paddr_i2c    = i_paddr - 24'h001000;
+  assign o_paddr_i2c    = 4'(i_paddr - 24'h001000);
   assign o_pwdata_i2c   = i_pwdata;
   assign o_pstrb_i2c    = i_pstrb;
   assign o_protect_en_i2c  = i_protect_en;
@@ -125,7 +125,7 @@ module m_vlsi_decoder_gpu (
   assign o_psel_spi     = w_sel[1] & i_psel;
   assign o_penable_spi  = i_penable;
   assign o_pwrite_spi   = i_pwrite;
-  assign o_paddr_spi    = i_paddr - 24'h000000;
+  assign o_paddr_spi    = 12'(i_paddr);
   assign o_pwdata_spi   = i_pwdata;
   assign o_pstrb_spi    = i_pstrb;
   assign o_protect_en_spi  = i_protect_en;
@@ -136,7 +136,7 @@ module m_vlsi_decoder_gpu (
   assign o_psel_pcie    = w_sel[2] & i_psel;
   assign o_penable_pcie = i_penable;
   assign o_pwrite_pcie  = i_pwrite;
-  assign o_paddr_pcie   = i_paddr - 24'h002000;
+  assign o_paddr_pcie   = 20'(i_paddr - 24'h002000);
   assign o_pwdata_pcie  = i_pwdata;
   assign o_pstrb_pcie   = i_pstrb;
   assign o_protect_en_pcie = i_protect_en;

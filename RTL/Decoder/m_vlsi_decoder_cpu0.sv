@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_decoder_cpu0
 //Function: APB Decoder
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -27,7 +27,7 @@ module m_vlsi_decoder_cpu0 (
   // ============================================================================
   // Interface of Slave UART
   // ============================================================================
-  output logic [23:0]   o_paddr_uart,  // to UART
+  output logic [7:0]   o_paddr_uart,  // to UART
   output logic          o_protect_en_uart,
   output logic          o_slverr_en_uart,
   output logic [2:0]    o_pprot_uart,
@@ -42,7 +42,7 @@ module m_vlsi_decoder_cpu0 (
   // ============================================================================
   // Interface of Slave I2C
   // ============================================================================
-  output logic [23:0]   o_paddr_i2c,  // to I2C
+  output logic [3:0]   o_paddr_i2c,  // to I2C
   output logic          o_protect_en_i2c,
   output logic          o_slverr_en_i2c,
   output logic [2:0]    o_pprot_i2c,
@@ -57,7 +57,7 @@ module m_vlsi_decoder_cpu0 (
   // ============================================================================
   // Interface of Slave PWM
   // ============================================================================
-  output logic [23:0]   o_paddr_pwm,  // to PWM
+  output logic [7:0]   o_paddr_pwm,  // to PWM
   output logic          o_protect_en_pwm,
   output logic          o_slverr_en_pwm,
   output logic [2:0]    o_pprot_pwm,
@@ -75,7 +75,7 @@ module m_vlsi_decoder_cpu0 (
   // ============================================================================
   // Address Decode Logic
   // ============================================================================
-  assign w_sel[0] = (i_paddr >= 24'h000000) & (i_paddr <= 24'h0000FF);  // UART
+  assign w_sel[0] = (i_paddr <= 24'h0000FF);  // UART
   assign w_sel[1] = (i_paddr >= 24'h010000) & (i_paddr <= 24'h01000F);  // I2C
   assign w_sel[2] = (i_paddr >= 24'h005000) & (i_paddr <= 24'h0050FF);  // PWM
 
@@ -114,7 +114,7 @@ module m_vlsi_decoder_cpu0 (
   assign o_psel_uart    = w_sel[0] & i_psel;
   assign o_penable_uart = i_penable;
   assign o_pwrite_uart  = i_pwrite;
-  assign o_paddr_uart   = i_paddr - 24'h000000;
+  assign o_paddr_uart   = 8'(i_paddr);
   assign o_pwdata_uart  = i_pwdata;
   assign o_pstrb_uart   = i_pstrb;
   assign o_protect_en_uart = i_protect_en;
@@ -125,7 +125,7 @@ module m_vlsi_decoder_cpu0 (
   assign o_psel_i2c     = w_sel[1] & i_psel;
   assign o_penable_i2c  = i_penable;
   assign o_pwrite_i2c   = i_pwrite;
-  assign o_paddr_i2c    = i_paddr - 24'h010000;
+  assign o_paddr_i2c    = 4'(i_paddr - 24'h010000);
   assign o_pwdata_i2c   = i_pwdata;
   assign o_pstrb_i2c    = i_pstrb;
   assign o_protect_en_i2c  = i_protect_en;
@@ -136,7 +136,7 @@ module m_vlsi_decoder_cpu0 (
   assign o_psel_pwm     = w_sel[2] & i_psel;
   assign o_penable_pwm  = i_penable;
   assign o_pwrite_pwm   = i_pwrite;
-  assign o_paddr_pwm    = i_paddr - 24'h005000;
+  assign o_paddr_pwm    = 8'(i_paddr - 24'h005000);
   assign o_pwdata_pwm   = i_pwdata;
   assign o_pstrb_pwm    = i_pstrb;
   assign o_protect_en_pwm  = i_protect_en;

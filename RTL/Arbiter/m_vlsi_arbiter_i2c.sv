@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_arbiter_i2c
 //Function: APB Arbiter
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -14,7 +14,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   input  logic          i_clk,
   input  logic          i_rstn,
-  output logic [23:0]   o_paddr,
+  output logic [3:0]   o_paddr,
   output logic          o_protect_en,
   output logic          o_slverr_en,
   output logic [2:0]    o_pprot,
@@ -29,7 +29,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 1: CPU0
   // ============================================================================
-  input  logic [23:0]   i_paddr_cpu0,
+  input  logic [3:0]   i_paddr_cpu0,
   input  logic          i_protect_en_cpu0,
   input  logic          i_slverr_en_cpu0,
   input  logic [2:0]    i_pprot_cpu0,
@@ -44,7 +44,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 2: CPU1
   // ============================================================================
-  input  logic [23:0]   i_paddr_cpu1,
+  input  logic [3:0]   i_paddr_cpu1,
   input  logic          i_protect_en_cpu1,
   input  logic          i_slverr_en_cpu1,
   input  logic [2:0]    i_pprot_cpu1,
@@ -59,7 +59,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 3: GPU
   // ============================================================================
-  input  logic [23:0]   i_paddr_gpu,
+  input  logic [3:0]   i_paddr_gpu,
   input  logic          i_protect_en_gpu,
   input  logic          i_slverr_en_gpu,
   input  logic [2:0]    i_pprot_gpu,
@@ -74,7 +74,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 4: NPU
   // ============================================================================
-  input  logic [23:0]   i_paddr_npu,
+  input  logic [3:0]   i_paddr_npu,
   input  logic          i_protect_en_npu,
   input  logic          i_slverr_en_npu,
   input  logic [2:0]    i_pprot_npu,
@@ -89,7 +89,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 5: TPU
   // ============================================================================
-  input  logic [23:0]   i_paddr_tpu,
+  input  logic [3:0]   i_paddr_tpu,
   input  logic          i_protect_en_tpu,
   input  logic          i_slverr_en_tpu,
   input  logic [2:0]    i_pprot_tpu,
@@ -104,7 +104,7 @@ module m_vlsi_arbiter_i2c (
   // ============================================================================
   // Master Interface 6: PPU
   // ============================================================================
-  input  logic [23:0]   i_paddr_ppu,
+  input  logic [3:0]   i_paddr_ppu,
   input  logic          i_protect_en_ppu,
   input  logic          i_slverr_en_ppu,
   input  logic [2:0]    i_pprot_ppu,

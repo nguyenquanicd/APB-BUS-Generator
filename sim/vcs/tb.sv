@@ -1,14 +1,24 @@
 `timescale 1ns/1ps
 
 module tb;
-  localparam int ADDR_W = 24;
   localparam int DATA_W = 32;
-  localparam int SLV_MEM_AW = 16;
+  localparam int MST_ADDR_W_CPU0 = 24;
+  localparam int MST_ADDR_W_CPU1 = 16;
+  localparam int MST_ADDR_W_GPU = 24;
+  localparam int MST_ADDR_W_NPU = 24;
+  localparam int MST_ADDR_W_TPU = 16;
+  localparam int MST_ADDR_W_PPU = 24;
+  localparam int SLV_ADDR_W_UART = 8;
+  localparam int SLV_ADDR_W_I2C = 4;
+  localparam int SLV_ADDR_W_SPI = 12;
+  localparam int SLV_ADDR_W_CAN = 15;
+  localparam int SLV_ADDR_W_PWM = 8;
+  localparam int SLV_ADDR_W_PCIE = 20;
 
   logic clk;
   logic rst_n;
 
-  logic [ADDR_W-1:0] cpu0_paddr;
+  logic [MST_ADDR_W_CPU0-1:0] cpu0_paddr;
   logic [DATA_W-1:0] cpu0_pwdata;
   logic [DATA_W-1:0] cpu0_prdata;
   logic              cpu0_pwrite;
@@ -19,7 +29,7 @@ module tb;
   logic [3:0]        cpu0_pstrb;
   logic [2:0]        cpu0_pprot;
 
-  logic [ADDR_W-1:0] cpu1_paddr;
+  logic [MST_ADDR_W_CPU1-1:0] cpu1_paddr;
   logic [DATA_W-1:0] cpu1_pwdata;
   logic [DATA_W-1:0] cpu1_prdata;
   logic              cpu1_pwrite;
@@ -30,7 +40,7 @@ module tb;
   logic [3:0]        cpu1_pstrb;
   logic [2:0]        cpu1_pprot;
 
-  logic [ADDR_W-1:0] gpu_paddr;
+  logic [MST_ADDR_W_GPU-1:0] gpu_paddr;
   logic [DATA_W-1:0] gpu_pwdata;
   logic [DATA_W-1:0] gpu_prdata;
   logic              gpu_pwrite;
@@ -41,7 +51,7 @@ module tb;
   logic [3:0]        gpu_pstrb;
   logic [2:0]        gpu_pprot;
 
-  logic [ADDR_W-1:0] npu_paddr;
+  logic [MST_ADDR_W_NPU-1:0] npu_paddr;
   logic [DATA_W-1:0] npu_pwdata;
   logic [DATA_W-1:0] npu_prdata;
   logic              npu_pwrite;
@@ -52,7 +62,7 @@ module tb;
   logic [3:0]        npu_pstrb;
   logic [2:0]        npu_pprot;
 
-  logic [ADDR_W-1:0] tpu_paddr;
+  logic [MST_ADDR_W_TPU-1:0] tpu_paddr;
   logic [DATA_W-1:0] tpu_pwdata;
   logic [DATA_W-1:0] tpu_prdata;
   logic              tpu_pwrite;
@@ -63,7 +73,7 @@ module tb;
   logic [3:0]        tpu_pstrb;
   logic [2:0]        tpu_pprot;
 
-  logic [ADDR_W-1:0] ppu_paddr;
+  logic [MST_ADDR_W_PPU-1:0] ppu_paddr;
   logic [DATA_W-1:0] ppu_pwdata;
   logic [DATA_W-1:0] ppu_prdata;
   logic              ppu_pwrite;
@@ -74,7 +84,7 @@ module tb;
   logic [3:0]        ppu_pstrb;
   logic [2:0]        ppu_pprot;
 
-  logic [ADDR_W-1:0] uart_paddr;
+  logic [SLV_ADDR_W_UART-1:0] uart_paddr;
   logic              uart_protect_en;
   logic              uart_slverr_en;
   logic [2:0]        uart_pprot;
@@ -87,7 +97,7 @@ module tb;
   logic              uart_pready;
   logic [DATA_W-1:0] uart_prdata;
 
-  logic [ADDR_W-1:0] i2c_paddr;
+  logic [SLV_ADDR_W_I2C-1:0] i2c_paddr;
   logic              i2c_protect_en;
   logic              i2c_slverr_en;
   logic [2:0]        i2c_pprot;
@@ -100,7 +110,7 @@ module tb;
   logic              i2c_pready;
   logic [DATA_W-1:0] i2c_prdata;
 
-  logic [ADDR_W-1:0] spi_paddr;
+  logic [SLV_ADDR_W_SPI-1:0] spi_paddr;
   logic              spi_protect_en;
   logic              spi_slverr_en;
   logic [2:0]        spi_pprot;
@@ -113,7 +123,7 @@ module tb;
   logic              spi_pready;
   logic [DATA_W-1:0] spi_prdata;
 
-  logic [ADDR_W-1:0] can_paddr;
+  logic [SLV_ADDR_W_CAN-1:0] can_paddr;
   logic              can_protect_en;
   logic              can_slverr_en;
   logic [2:0]        can_pprot;
@@ -126,7 +136,7 @@ module tb;
   logic              can_pready;
   logic [DATA_W-1:0] can_prdata;
 
-  logic [ADDR_W-1:0] pwm_paddr;
+  logic [SLV_ADDR_W_PWM-1:0] pwm_paddr;
   logic              pwm_protect_en;
   logic              pwm_slverr_en;
   logic [2:0]        pwm_pprot;
@@ -139,7 +149,7 @@ module tb;
   logic              pwm_pready;
   logic [DATA_W-1:0] pwm_prdata;
 
-  logic [ADDR_W-1:0] pcie_paddr;
+  logic [SLV_ADDR_W_PCIE-1:0] pcie_paddr;
   logic              pcie_protect_en;
   logic              pcie_slverr_en;
   logic [2:0]        pcie_pprot;
@@ -157,42 +167,42 @@ module tb;
 
   always #5 clk = ~clk;
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_cpu0_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_CPU0), .PARA_DATA_WIDTH(DATA_W)) u_cpu0_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(cpu0_paddr), .o_pwdata(cpu0_pwdata), .i_prdata(cpu0_prdata),
     .o_pwrite(cpu0_pwrite), .o_psel(cpu0_psel), .o_penable(cpu0_penable),
     .i_pready(cpu0_pready), .o_pstrb(cpu0_pstrb), .o_pprot(cpu0_pprot)
   );
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_cpu1_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_CPU1), .PARA_DATA_WIDTH(DATA_W)) u_cpu1_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(cpu1_paddr), .o_pwdata(cpu1_pwdata), .i_prdata(cpu1_prdata),
     .o_pwrite(cpu1_pwrite), .o_psel(cpu1_psel), .o_penable(cpu1_penable),
     .i_pready(cpu1_pready), .o_pstrb(cpu1_pstrb), .o_pprot(cpu1_pprot)
   );
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_gpu_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_GPU), .PARA_DATA_WIDTH(DATA_W)) u_gpu_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(gpu_paddr), .o_pwdata(gpu_pwdata), .i_prdata(gpu_prdata),
     .o_pwrite(gpu_pwrite), .o_psel(gpu_psel), .o_penable(gpu_penable),
     .i_pready(gpu_pready), .o_pstrb(gpu_pstrb), .o_pprot(gpu_pprot)
   );
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_npu_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_NPU), .PARA_DATA_WIDTH(DATA_W)) u_npu_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(npu_paddr), .o_pwdata(npu_pwdata), .i_prdata(npu_prdata),
     .o_pwrite(npu_pwrite), .o_psel(npu_psel), .o_penable(npu_penable),
     .i_pready(npu_pready), .o_pstrb(npu_pstrb), .o_pprot(npu_pprot)
   );
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_tpu_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_TPU), .PARA_DATA_WIDTH(DATA_W)) u_tpu_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(tpu_paddr), .o_pwdata(tpu_pwdata), .i_prdata(tpu_prdata),
     .o_pwrite(tpu_pwrite), .o_psel(tpu_psel), .o_penable(tpu_penable),
     .i_pready(tpu_pready), .o_pstrb(tpu_pstrb), .o_pprot(tpu_pprot)
   );
 
-  apb_master_bfm #(.PARA_ADDR_WIDTH(ADDR_W), .PARA_DATA_WIDTH(DATA_W)) u_ppu_bfm (
+  apb_master_bfm #(.PARA_ADDR_WIDTH(MST_ADDR_W_PPU), .PARA_DATA_WIDTH(DATA_W)) u_ppu_bfm (
     .i_clk(clk), .i_rst_n(rst_n),
     .o_paddr(ppu_paddr), .o_pwdata(ppu_pwdata), .i_prdata(ppu_prdata),
     .o_pwrite(ppu_pwrite), .o_psel(ppu_psel), .o_penable(ppu_penable),
@@ -253,68 +263,68 @@ module tb;
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_UART),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_uart_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(uart_paddr[SLV_MEM_AW-1:0]), .i_pwdata(uart_pwdata), .o_prdata(uart_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(uart_paddr), .i_pwdata(uart_pwdata), .o_prdata(uart_prdata),
     .i_pwrite(uart_pwrite), .i_psel(uart_psel), .i_penable(uart_penable), .o_pready(uart_pready),
     .o_pslverr(uart_pslverr), .i_pstrb(uart_pstrb), .i_pprot(uart_pprot)
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_I2C),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_i2c_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(i2c_paddr[SLV_MEM_AW-1:0]), .i_pwdata(i2c_pwdata), .o_prdata(i2c_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(i2c_paddr), .i_pwdata(i2c_pwdata), .o_prdata(i2c_prdata),
     .i_pwrite(i2c_pwrite), .i_psel(i2c_psel), .i_penable(i2c_penable), .o_pready(i2c_pready),
     .o_pslverr(i2c_pslverr), .i_pstrb(i2c_pstrb), .i_pprot(i2c_pprot)
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_SPI),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_spi_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(spi_paddr[SLV_MEM_AW-1:0]), .i_pwdata(spi_pwdata), .o_prdata(spi_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(spi_paddr), .i_pwdata(spi_pwdata), .o_prdata(spi_prdata),
     .i_pwrite(spi_pwrite), .i_psel(spi_psel), .i_penable(spi_penable), .o_pready(spi_pready),
     .o_pslverr(spi_pslverr), .i_pstrb(spi_pstrb), .i_pprot(spi_pprot)
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_CAN),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_can_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(can_paddr[SLV_MEM_AW-1:0]), .i_pwdata(can_pwdata), .o_prdata(can_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(can_paddr), .i_pwdata(can_pwdata), .o_prdata(can_prdata),
     .i_pwrite(can_pwrite), .i_psel(can_psel), .i_penable(can_penable), .o_pready(can_pready),
     .o_pslverr(can_pslverr), .i_pstrb(can_pstrb), .i_pprot(can_pprot)
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_PWM),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_pwm_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(pwm_paddr[SLV_MEM_AW-1:0]), .i_pwdata(pwm_pwdata), .o_prdata(pwm_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(pwm_paddr), .i_pwdata(pwm_pwdata), .o_prdata(pwm_prdata),
     .i_pwrite(pwm_pwrite), .i_psel(pwm_psel), .i_penable(pwm_penable), .o_pready(pwm_pready),
     .o_pslverr(pwm_pslverr), .i_pstrb(pwm_pstrb), .i_pprot(pwm_pprot)
   );
 
   apb_slave_bfm #(
-    .PARA_ADDR_WIDTH(SLV_MEM_AW),
+    .PARA_ADDR_WIDTH(SLV_ADDR_W_PCIE),
     .PARA_DATA_WIDTH(DATA_W),
     .PARA_APB_WAIT_STATES(1)
   ) u_pcie_bfm (
-    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(pcie_paddr[SLV_MEM_AW-1:0]), .i_pwdata(pcie_pwdata), .o_prdata(pcie_prdata),
+    .i_clk(clk), .i_rst_n(rst_n), .i_paddr(pcie_paddr), .i_pwdata(pcie_pwdata), .o_prdata(pcie_prdata),
     .i_pwrite(pcie_pwrite), .i_psel(pcie_psel), .i_penable(pcie_penable), .o_pready(pcie_pready),
     .o_pslverr(pcie_pslverr), .i_pstrb(pcie_pstrb), .i_pprot(pcie_pprot)
   );
 
   logic              uart_psel_d;
   logic              uart_penable_d;
-  logic [ADDR_W-1:0] uart_paddr_d;
+  logic [SLV_ADDR_W_UART-1:0] uart_paddr_d;
   logic              uart_pwrite_d;
   logic [3:0]        uart_pstrb_d;
   logic [2:0]        uart_pprot_d;
@@ -357,7 +367,7 @@ module tb;
 
   logic              i2c_psel_d;
   logic              i2c_penable_d;
-  logic [ADDR_W-1:0] i2c_paddr_d;
+  logic [SLV_ADDR_W_I2C-1:0] i2c_paddr_d;
   logic              i2c_pwrite_d;
   logic [3:0]        i2c_pstrb_d;
   logic [2:0]        i2c_pprot_d;
@@ -400,7 +410,7 @@ module tb;
 
   logic              spi_psel_d;
   logic              spi_penable_d;
-  logic [ADDR_W-1:0] spi_paddr_d;
+  logic [SLV_ADDR_W_SPI-1:0] spi_paddr_d;
   logic              spi_pwrite_d;
   logic [3:0]        spi_pstrb_d;
   logic [2:0]        spi_pprot_d;
@@ -443,7 +453,7 @@ module tb;
 
   logic              can_psel_d;
   logic              can_penable_d;
-  logic [ADDR_W-1:0] can_paddr_d;
+  logic [SLV_ADDR_W_CAN-1:0] can_paddr_d;
   logic              can_pwrite_d;
   logic [3:0]        can_pstrb_d;
   logic [2:0]        can_pprot_d;
@@ -486,7 +496,7 @@ module tb;
 
   logic              pwm_psel_d;
   logic              pwm_penable_d;
-  logic [ADDR_W-1:0] pwm_paddr_d;
+  logic [SLV_ADDR_W_PWM-1:0] pwm_paddr_d;
   logic              pwm_pwrite_d;
   logic [3:0]        pwm_pstrb_d;
   logic [2:0]        pwm_pprot_d;
@@ -529,7 +539,7 @@ module tb;
 
   logic              pcie_psel_d;
   logic              pcie_penable_d;
-  logic [ADDR_W-1:0] pcie_paddr_d;
+  logic [SLV_ADDR_W_PCIE-1:0] pcie_paddr_d;
   logic              pcie_pwrite_d;
   logic [3:0]        pcie_pstrb_d;
   logic [2:0]        pcie_pprot_d;
@@ -596,8 +606,8 @@ module tb;
     fork : txn_1
       begin
         $display("Running CPU0->UART @ 0x00000000");
-        u_cpu0_bfm.write(32'h00000000, 32'hA5000101);
-        u_cpu0_bfm.read(32'h00000000, rdata);
+        u_cpu0_bfm.write(24'h000000, 32'hA5000101);
+        u_cpu0_bfm.read(24'h000000, rdata);
         check_data("CPU0->UART", rdata, 32'hA5000101);
       end
       begin
@@ -611,8 +621,8 @@ module tb;
     fork : txn_2
       begin
         $display("Running CPU0->I2C @ 0x00010000");
-        u_cpu0_bfm.write(32'h00010000, 32'hA5000202);
-        u_cpu0_bfm.read(32'h00010000, rdata);
+        u_cpu0_bfm.write(24'h010000, 32'hA5000202);
+        u_cpu0_bfm.read(24'h010000, rdata);
         check_data("CPU0->I2C", rdata, 32'hA5000202);
       end
       begin
@@ -626,8 +636,8 @@ module tb;
     fork : txn_3
       begin
         $display("Running CPU0->PWM @ 0x00005000");
-        u_cpu0_bfm.write(32'h00005000, 32'hA5000303);
-        u_cpu0_bfm.read(32'h00005000, rdata);
+        u_cpu0_bfm.write(24'h005000, 32'hA5000303);
+        u_cpu0_bfm.read(24'h005000, rdata);
         check_data("CPU0->PWM", rdata, 32'hA5000303);
       end
       begin
@@ -641,8 +651,8 @@ module tb;
     fork : txn_4
       begin
         $display("Running CPU1->UART @ 0x00000000");
-        u_cpu1_bfm.write(32'h00000000, 32'hA5000404);
-        u_cpu1_bfm.read(32'h00000000, rdata);
+        u_cpu1_bfm.write(16'h0000, 32'hA5000404);
+        u_cpu1_bfm.read(16'h0000, rdata);
         check_data("CPU1->UART", rdata, 32'hA5000404);
       end
       begin
@@ -656,8 +666,8 @@ module tb;
     fork : txn_5
       begin
         $display("Running CPU1->I2C @ 0x00002000");
-        u_cpu1_bfm.write(32'h00002000, 32'hA5000505);
-        u_cpu1_bfm.read(32'h00002000, rdata);
+        u_cpu1_bfm.write(16'h2000, 32'hA5000505);
+        u_cpu1_bfm.read(16'h2000, rdata);
         check_data("CPU1->I2C", rdata, 32'hA5000505);
       end
       begin
@@ -671,8 +681,8 @@ module tb;
     fork : txn_6
       begin
         $display("Running CPU1->CAN @ 0x00004000");
-        u_cpu1_bfm.write(32'h00004000, 32'hA5000606);
-        u_cpu1_bfm.read(32'h00004000, rdata);
+        u_cpu1_bfm.write(16'h4000, 32'hA5000606);
+        u_cpu1_bfm.read(16'h4000, rdata);
         check_data("CPU1->CAN", rdata, 32'hA5000606);
       end
       begin
@@ -686,8 +696,8 @@ module tb;
     fork : txn_7
       begin
         $display("Running GPU->I2C @ 0x00001000");
-        u_gpu_bfm.write(32'h00001000, 32'hA5000707);
-        u_gpu_bfm.read(32'h00001000, rdata);
+        u_gpu_bfm.write(24'h001000, 32'hA5000707);
+        u_gpu_bfm.read(24'h001000, rdata);
         check_data("GPU->I2C", rdata, 32'hA5000707);
       end
       begin
@@ -701,8 +711,8 @@ module tb;
     fork : txn_8
       begin
         $display("Running GPU->SPI @ 0x00000000");
-        u_gpu_bfm.write(32'h00000000, 32'hA5000808);
-        u_gpu_bfm.read(32'h00000000, rdata);
+        u_gpu_bfm.write(24'h000000, 32'hA5000808);
+        u_gpu_bfm.read(24'h000000, rdata);
         check_data("GPU->SPI", rdata, 32'hA5000808);
       end
       begin
@@ -716,8 +726,8 @@ module tb;
     fork : txn_9
       begin
         $display("Running GPU->PCIE @ 0x00002000");
-        u_gpu_bfm.write(32'h00002000, 32'hA5000909);
-        u_gpu_bfm.read(32'h00002000, rdata);
+        u_gpu_bfm.write(24'h002000, 32'hA5000909);
+        u_gpu_bfm.read(24'h002000, rdata);
         check_data("GPU->PCIE", rdata, 32'hA5000909);
       end
       begin
@@ -731,8 +741,8 @@ module tb;
     fork : txn_10
       begin
         $display("Running NPU->I2C @ 0x00000000");
-        u_npu_bfm.write(32'h00000000, 32'hA5000A0A);
-        u_npu_bfm.read(32'h00000000, rdata);
+        u_npu_bfm.write(24'h000000, 32'hA5000A0A);
+        u_npu_bfm.read(24'h000000, rdata);
         check_data("NPU->I2C", rdata, 32'hA5000A0A);
       end
       begin
@@ -746,8 +756,8 @@ module tb;
     fork : txn_11
       begin
         $display("Running TPU->I2C @ 0x00001000");
-        u_tpu_bfm.write(32'h00001000, 32'hA5000B0B);
-        u_tpu_bfm.read(32'h00001000, rdata);
+        u_tpu_bfm.write(16'h1000, 32'hA5000B0B);
+        u_tpu_bfm.read(16'h1000, rdata);
         check_data("TPU->I2C", rdata, 32'hA5000B0B);
       end
       begin
@@ -761,8 +771,8 @@ module tb;
     fork : txn_12
       begin
         $display("Running PPU->I2C @ 0x00002000");
-        u_ppu_bfm.write(32'h00002000, 32'hA5000C0C);
-        u_ppu_bfm.read(32'h00002000, rdata);
+        u_ppu_bfm.write(24'h002000, 32'hA5000C0C);
+        u_ppu_bfm.read(24'h002000, rdata);
         check_data("PPU->I2C", rdata, 32'hA5000C0C);
       end
       begin
@@ -777,12 +787,12 @@ module tb;
       begin
         $display("Running contention UART: CPU0@0x00000000 || CPU1@0x00000004");
         fork
-          begin u_cpu0_bfm.write(32'h00000000, 32'hB1000D11); end
-          begin u_cpu1_bfm.write(32'h00000004, 32'hB2000D22); end
+          begin u_cpu0_bfm.write(24'h000000, 32'hB1000D11); end
+          begin u_cpu1_bfm.write(16'h0004, 32'hB2000D22); end
         join
-        u_cpu0_bfm.read(32'h00000000, rdata);
+        u_cpu0_bfm.read(24'h000000, rdata);
         check_data("ARB-UART-CPU0", rdata, 32'hB1000D11);
-        u_cpu1_bfm.read(32'h00000004, rdata);
+        u_cpu1_bfm.read(16'h0004, rdata);
         check_data("ARB-UART-CPU1", rdata, 32'hB2000D22);
       end
       begin
@@ -797,68 +807,68 @@ module tb;
       begin
         $display("Running intensive contention stress on UART (2 contenders)");
         fork
-          begin u_cpu0_bfm.write(32'h00000000, 32'hC5000E00); end
-          begin u_cpu1_bfm.write(32'h00000004, 32'hC5000E00); end
+          begin u_cpu0_bfm.write(24'h000000, 32'hC5000E00); end
+          begin u_cpu1_bfm.write(16'h0004, 32'hC5000E00); end
         join
-        u_cpu0_bfm.read(32'h00000000, rdata);
+        u_cpu0_bfm.read(24'h000000, rdata);
         check_data("STR-UART-CPU0-0", rdata, 32'hC5000E00);
-        u_cpu1_bfm.read(32'h00000004, rdata);
+        u_cpu1_bfm.read(16'h0004, rdata);
         check_data("STR-UART-CPU1-0", rdata, 32'hC5000E00);
         fork
-          begin u_cpu0_bfm.write(32'h0000000C, 32'hC5000F01); end
-          begin u_cpu1_bfm.write(32'h00000010, 32'hC5000F01); end
+          begin u_cpu0_bfm.write(24'h00000C, 32'hC5000F01); end
+          begin u_cpu1_bfm.write(16'h0010, 32'hC5000F01); end
         join
-        u_cpu0_bfm.read(32'h0000000C, rdata);
+        u_cpu0_bfm.read(24'h00000C, rdata);
         check_data("STR-UART-CPU0-1", rdata, 32'hC5000F01);
-        u_cpu1_bfm.read(32'h00000010, rdata);
+        u_cpu1_bfm.read(16'h0010, rdata);
         check_data("STR-UART-CPU1-1", rdata, 32'hC5000F01);
         fork
-          begin u_cpu0_bfm.write(32'h00000018, 32'hC5001002); end
-          begin u_cpu1_bfm.write(32'h0000001C, 32'hC5001002); end
+          begin u_cpu0_bfm.write(24'h000018, 32'hC5001002); end
+          begin u_cpu1_bfm.write(16'h001C, 32'hC5001002); end
         join
-        u_cpu0_bfm.read(32'h00000018, rdata);
+        u_cpu0_bfm.read(24'h000018, rdata);
         check_data("STR-UART-CPU0-2", rdata, 32'hC5001002);
-        u_cpu1_bfm.read(32'h0000001C, rdata);
+        u_cpu1_bfm.read(16'h001C, rdata);
         check_data("STR-UART-CPU1-2", rdata, 32'hC5001002);
         fork
-          begin u_cpu0_bfm.write(32'h00000024, 32'hC5001103); end
-          begin u_cpu1_bfm.write(32'h00000028, 32'hC5001103); end
+          begin u_cpu0_bfm.write(24'h000024, 32'hC5001103); end
+          begin u_cpu1_bfm.write(16'h0028, 32'hC5001103); end
         join
-        u_cpu0_bfm.read(32'h00000024, rdata);
+        u_cpu0_bfm.read(24'h000024, rdata);
         check_data("STR-UART-CPU0-3", rdata, 32'hC5001103);
-        u_cpu1_bfm.read(32'h00000028, rdata);
+        u_cpu1_bfm.read(16'h0028, rdata);
         check_data("STR-UART-CPU1-3", rdata, 32'hC5001103);
         fork
-          begin u_cpu0_bfm.write(32'h00000030, 32'hC5001204); end
-          begin u_cpu1_bfm.write(32'h00000034, 32'hC5001204); end
+          begin u_cpu0_bfm.write(24'h000030, 32'hC5001204); end
+          begin u_cpu1_bfm.write(16'h0034, 32'hC5001204); end
         join
-        u_cpu0_bfm.read(32'h00000030, rdata);
+        u_cpu0_bfm.read(24'h000030, rdata);
         check_data("STR-UART-CPU0-4", rdata, 32'hC5001204);
-        u_cpu1_bfm.read(32'h00000034, rdata);
+        u_cpu1_bfm.read(16'h0034, rdata);
         check_data("STR-UART-CPU1-4", rdata, 32'hC5001204);
         fork
-          begin u_cpu0_bfm.write(32'h0000003C, 32'hC5001305); end
-          begin u_cpu1_bfm.write(32'h00000040, 32'hC5001305); end
+          begin u_cpu0_bfm.write(24'h00003C, 32'hC5001305); end
+          begin u_cpu1_bfm.write(16'h0040, 32'hC5001305); end
         join
-        u_cpu0_bfm.read(32'h0000003C, rdata);
+        u_cpu0_bfm.read(24'h00003C, rdata);
         check_data("STR-UART-CPU0-5", rdata, 32'hC5001305);
-        u_cpu1_bfm.read(32'h00000040, rdata);
+        u_cpu1_bfm.read(16'h0040, rdata);
         check_data("STR-UART-CPU1-5", rdata, 32'hC5001305);
         fork
-          begin u_cpu0_bfm.write(32'h00000048, 32'hC5001406); end
-          begin u_cpu1_bfm.write(32'h0000004C, 32'hC5001406); end
+          begin u_cpu0_bfm.write(24'h000048, 32'hC5001406); end
+          begin u_cpu1_bfm.write(16'h004C, 32'hC5001406); end
         join
-        u_cpu0_bfm.read(32'h00000048, rdata);
+        u_cpu0_bfm.read(24'h000048, rdata);
         check_data("STR-UART-CPU0-6", rdata, 32'hC5001406);
-        u_cpu1_bfm.read(32'h0000004C, rdata);
+        u_cpu1_bfm.read(16'h004C, rdata);
         check_data("STR-UART-CPU1-6", rdata, 32'hC5001406);
         fork
-          begin u_cpu0_bfm.write(32'h00000054, 32'hC5001507); end
-          begin u_cpu1_bfm.write(32'h00000058, 32'hC5001507); end
+          begin u_cpu0_bfm.write(24'h000054, 32'hC5001507); end
+          begin u_cpu1_bfm.write(16'h0058, 32'hC5001507); end
         join
-        u_cpu0_bfm.read(32'h00000054, rdata);
+        u_cpu0_bfm.read(24'h000054, rdata);
         check_data("STR-UART-CPU0-7", rdata, 32'hC5001507);
-        u_cpu1_bfm.read(32'h00000058, rdata);
+        u_cpu1_bfm.read(16'h0058, rdata);
         check_data("STR-UART-CPU1-7", rdata, 32'hC5001507);
       end
       begin
@@ -902,9 +912,9 @@ module tb;
             for (rr_k_cpu0 = 0; rr_k_cpu0 < 4; rr_k_cpu0++) begin
               rr_wop_cpu0 = rr_k_cpu0 * 2;
               rr_rop_cpu0 = rr_wop_cpu0 + 1;
-              u_cpu0_bfm.write(32'h00000000, (32'hD5000F00 + rr_k_cpu0));
+              u_cpu0_bfm.write(24'h000000, (32'hD5000F00 + rr_k_cpu0));
               rr_done_t_uart[0][rr_wop_cpu0] = $time;
-              u_cpu0_bfm.read(32'h00000000, rr_rd_cpu0);
+              u_cpu0_bfm.read(24'h000000, rr_rd_cpu0);
               check_data($sformatf("RRRW-UART-CPU0-%0d", rr_k_cpu0), rr_rd_cpu0, (32'hD5000F00 + rr_k_cpu0));
               rr_done_t_uart[0][rr_rop_cpu0] = $time;
             end
@@ -917,9 +927,9 @@ module tb;
             for (rr_k_cpu1 = 0; rr_k_cpu1 < 4; rr_k_cpu1++) begin
               rr_wop_cpu1 = rr_k_cpu1 * 2;
               rr_rop_cpu1 = rr_wop_cpu1 + 1;
-              u_cpu1_bfm.write(32'h00000004, (32'hD5000F00 + rr_k_cpu1));
+              u_cpu1_bfm.write(16'h0004, (32'hD5000F00 + rr_k_cpu1));
               rr_done_t_uart[1][rr_wop_cpu1] = $time;
-              u_cpu1_bfm.read(32'h00000004, rr_rd_cpu1);
+              u_cpu1_bfm.read(16'h0004, rr_rd_cpu1);
               check_data($sformatf("RRRW-UART-CPU1-%0d", rr_k_cpu1), rr_rd_cpu1, (32'hD5000F00 + rr_k_cpu1));
               rr_done_t_uart[1][rr_rop_cpu1] = $time;
             end
@@ -966,12 +976,12 @@ module tb;
       begin
         $display("Running contention I2C: CPU0@0x00010000 || CPU1@0x00002004");
         fork
-          begin u_cpu0_bfm.write(32'h00010000, 32'hB1001011); end
-          begin u_cpu1_bfm.write(32'h00002004, 32'hB2001022); end
+          begin u_cpu0_bfm.write(24'h010000, 32'hB1001011); end
+          begin u_cpu1_bfm.write(16'h2004, 32'hB2001022); end
         join
-        u_cpu0_bfm.read(32'h00010000, rdata);
+        u_cpu0_bfm.read(24'h010000, rdata);
         check_data("ARB-I2C-CPU0", rdata, 32'hB1001011);
-        u_cpu1_bfm.read(32'h00002004, rdata);
+        u_cpu1_bfm.read(16'h2004, rdata);
         check_data("ARB-I2C-CPU1", rdata, 32'hB2001022);
       end
       begin
@@ -986,164 +996,164 @@ module tb;
       begin
         $display("Running intensive contention stress on I2C (6 contenders)");
         fork
-          begin u_cpu0_bfm.write(32'h00010000, 32'hC5001100); end
-          begin u_cpu1_bfm.write(32'h00002004, 32'hC5001100); end
-          begin u_gpu_bfm.write(32'h00001008, 32'hC5001100); end
-          begin u_npu_bfm.write(32'h0000000C, 32'hC5001100); end
-          begin u_tpu_bfm.write(32'h00001000, 32'hC5001100); end
-          begin u_ppu_bfm.write(32'h00002004, 32'hC5001100); end
+          begin u_cpu0_bfm.write(24'h010000, 32'hC5001100); end
+          begin u_cpu1_bfm.write(16'h2004, 32'hC5001100); end
+          begin u_gpu_bfm.write(24'h001008, 32'hC5001100); end
+          begin u_npu_bfm.write(24'h00000C, 32'hC5001100); end
+          begin u_tpu_bfm.write(16'h1000, 32'hC5001100); end
+          begin u_ppu_bfm.write(24'h002004, 32'hC5001100); end
         join
-        u_cpu0_bfm.read(32'h00010000, rdata);
+        u_cpu0_bfm.read(24'h010000, rdata);
         check_data("STR-I2C-CPU0-0", rdata, 32'hC5001100);
-        u_cpu1_bfm.read(32'h00002004, rdata);
+        u_cpu1_bfm.read(16'h2004, rdata);
         check_data("STR-I2C-CPU1-0", rdata, 32'hC5001100);
-        u_gpu_bfm.read(32'h00001008, rdata);
+        u_gpu_bfm.read(24'h001008, rdata);
         check_data("STR-I2C-GPU-0", rdata, 32'hC5001100);
-        u_npu_bfm.read(32'h0000000C, rdata);
+        u_npu_bfm.read(24'h00000C, rdata);
         check_data("STR-I2C-NPU-0", rdata, 32'hC5001100);
-        u_tpu_bfm.read(32'h00001000, rdata);
+        u_tpu_bfm.read(16'h1000, rdata);
         check_data("STR-I2C-TPU-0", rdata, 32'hC5001100);
-        u_ppu_bfm.read(32'h00002004, rdata);
+        u_ppu_bfm.read(24'h002004, rdata);
         check_data("STR-I2C-PPU-0", rdata, 32'hC5001100);
         fork
-          begin u_cpu0_bfm.write(32'h0001000C, 32'hC5001201); end
-          begin u_cpu1_bfm.write(32'h00002000, 32'hC5001201); end
-          begin u_gpu_bfm.write(32'h00001004, 32'hC5001201); end
-          begin u_npu_bfm.write(32'h00000008, 32'hC5001201); end
-          begin u_tpu_bfm.write(32'h0000100C, 32'hC5001201); end
-          begin u_ppu_bfm.write(32'h00002000, 32'hC5001201); end
+          begin u_cpu0_bfm.write(24'h01000C, 32'hC5001201); end
+          begin u_cpu1_bfm.write(16'h2000, 32'hC5001201); end
+          begin u_gpu_bfm.write(24'h001004, 32'hC5001201); end
+          begin u_npu_bfm.write(24'h000008, 32'hC5001201); end
+          begin u_tpu_bfm.write(16'h100C, 32'hC5001201); end
+          begin u_ppu_bfm.write(24'h002000, 32'hC5001201); end
         join
-        u_cpu0_bfm.read(32'h0001000C, rdata);
+        u_cpu0_bfm.read(24'h01000C, rdata);
         check_data("STR-I2C-CPU0-1", rdata, 32'hC5001201);
-        u_cpu1_bfm.read(32'h00002000, rdata);
+        u_cpu1_bfm.read(16'h2000, rdata);
         check_data("STR-I2C-CPU1-1", rdata, 32'hC5001201);
-        u_gpu_bfm.read(32'h00001004, rdata);
+        u_gpu_bfm.read(24'h001004, rdata);
         check_data("STR-I2C-GPU-1", rdata, 32'hC5001201);
-        u_npu_bfm.read(32'h00000008, rdata);
+        u_npu_bfm.read(24'h000008, rdata);
         check_data("STR-I2C-NPU-1", rdata, 32'hC5001201);
-        u_tpu_bfm.read(32'h0000100C, rdata);
+        u_tpu_bfm.read(16'h100C, rdata);
         check_data("STR-I2C-TPU-1", rdata, 32'hC5001201);
-        u_ppu_bfm.read(32'h00002000, rdata);
+        u_ppu_bfm.read(24'h002000, rdata);
         check_data("STR-I2C-PPU-1", rdata, 32'hC5001201);
         fork
-          begin u_cpu0_bfm.write(32'h00010008, 32'hC5001302); end
-          begin u_cpu1_bfm.write(32'h0000200C, 32'hC5001302); end
-          begin u_gpu_bfm.write(32'h00001000, 32'hC5001302); end
-          begin u_npu_bfm.write(32'h00000004, 32'hC5001302); end
-          begin u_tpu_bfm.write(32'h00001008, 32'hC5001302); end
-          begin u_ppu_bfm.write(32'h0000200C, 32'hC5001302); end
+          begin u_cpu0_bfm.write(24'h010008, 32'hC5001302); end
+          begin u_cpu1_bfm.write(16'h200C, 32'hC5001302); end
+          begin u_gpu_bfm.write(24'h001000, 32'hC5001302); end
+          begin u_npu_bfm.write(24'h000004, 32'hC5001302); end
+          begin u_tpu_bfm.write(16'h1008, 32'hC5001302); end
+          begin u_ppu_bfm.write(24'h00200C, 32'hC5001302); end
         join
-        u_cpu0_bfm.read(32'h00010008, rdata);
+        u_cpu0_bfm.read(24'h010008, rdata);
         check_data("STR-I2C-CPU0-2", rdata, 32'hC5001302);
-        u_cpu1_bfm.read(32'h0000200C, rdata);
+        u_cpu1_bfm.read(16'h200C, rdata);
         check_data("STR-I2C-CPU1-2", rdata, 32'hC5001302);
-        u_gpu_bfm.read(32'h00001000, rdata);
+        u_gpu_bfm.read(24'h001000, rdata);
         check_data("STR-I2C-GPU-2", rdata, 32'hC5001302);
-        u_npu_bfm.read(32'h00000004, rdata);
+        u_npu_bfm.read(24'h000004, rdata);
         check_data("STR-I2C-NPU-2", rdata, 32'hC5001302);
-        u_tpu_bfm.read(32'h00001008, rdata);
+        u_tpu_bfm.read(16'h1008, rdata);
         check_data("STR-I2C-TPU-2", rdata, 32'hC5001302);
-        u_ppu_bfm.read(32'h0000200C, rdata);
+        u_ppu_bfm.read(24'h00200C, rdata);
         check_data("STR-I2C-PPU-2", rdata, 32'hC5001302);
         fork
-          begin u_cpu0_bfm.write(32'h00010004, 32'hC5001403); end
-          begin u_cpu1_bfm.write(32'h00002008, 32'hC5001403); end
-          begin u_gpu_bfm.write(32'h0000100C, 32'hC5001403); end
-          begin u_npu_bfm.write(32'h00000000, 32'hC5001403); end
-          begin u_tpu_bfm.write(32'h00001004, 32'hC5001403); end
-          begin u_ppu_bfm.write(32'h00002008, 32'hC5001403); end
+          begin u_cpu0_bfm.write(24'h010004, 32'hC5001403); end
+          begin u_cpu1_bfm.write(16'h2008, 32'hC5001403); end
+          begin u_gpu_bfm.write(24'h00100C, 32'hC5001403); end
+          begin u_npu_bfm.write(24'h000000, 32'hC5001403); end
+          begin u_tpu_bfm.write(16'h1004, 32'hC5001403); end
+          begin u_ppu_bfm.write(24'h002008, 32'hC5001403); end
         join
-        u_cpu0_bfm.read(32'h00010004, rdata);
+        u_cpu0_bfm.read(24'h010004, rdata);
         check_data("STR-I2C-CPU0-3", rdata, 32'hC5001403);
-        u_cpu1_bfm.read(32'h00002008, rdata);
+        u_cpu1_bfm.read(16'h2008, rdata);
         check_data("STR-I2C-CPU1-3", rdata, 32'hC5001403);
-        u_gpu_bfm.read(32'h0000100C, rdata);
+        u_gpu_bfm.read(24'h00100C, rdata);
         check_data("STR-I2C-GPU-3", rdata, 32'hC5001403);
-        u_npu_bfm.read(32'h00000000, rdata);
+        u_npu_bfm.read(24'h000000, rdata);
         check_data("STR-I2C-NPU-3", rdata, 32'hC5001403);
-        u_tpu_bfm.read(32'h00001004, rdata);
+        u_tpu_bfm.read(16'h1004, rdata);
         check_data("STR-I2C-TPU-3", rdata, 32'hC5001403);
-        u_ppu_bfm.read(32'h00002008, rdata);
+        u_ppu_bfm.read(24'h002008, rdata);
         check_data("STR-I2C-PPU-3", rdata, 32'hC5001403);
         fork
-          begin u_cpu0_bfm.write(32'h00010000, 32'hC5001504); end
-          begin u_cpu1_bfm.write(32'h00002004, 32'hC5001504); end
-          begin u_gpu_bfm.write(32'h00001008, 32'hC5001504); end
-          begin u_npu_bfm.write(32'h0000000C, 32'hC5001504); end
-          begin u_tpu_bfm.write(32'h00001000, 32'hC5001504); end
-          begin u_ppu_bfm.write(32'h00002004, 32'hC5001504); end
+          begin u_cpu0_bfm.write(24'h010000, 32'hC5001504); end
+          begin u_cpu1_bfm.write(16'h2004, 32'hC5001504); end
+          begin u_gpu_bfm.write(24'h001008, 32'hC5001504); end
+          begin u_npu_bfm.write(24'h00000C, 32'hC5001504); end
+          begin u_tpu_bfm.write(16'h1000, 32'hC5001504); end
+          begin u_ppu_bfm.write(24'h002004, 32'hC5001504); end
         join
-        u_cpu0_bfm.read(32'h00010000, rdata);
+        u_cpu0_bfm.read(24'h010000, rdata);
         check_data("STR-I2C-CPU0-4", rdata, 32'hC5001504);
-        u_cpu1_bfm.read(32'h00002004, rdata);
+        u_cpu1_bfm.read(16'h2004, rdata);
         check_data("STR-I2C-CPU1-4", rdata, 32'hC5001504);
-        u_gpu_bfm.read(32'h00001008, rdata);
+        u_gpu_bfm.read(24'h001008, rdata);
         check_data("STR-I2C-GPU-4", rdata, 32'hC5001504);
-        u_npu_bfm.read(32'h0000000C, rdata);
+        u_npu_bfm.read(24'h00000C, rdata);
         check_data("STR-I2C-NPU-4", rdata, 32'hC5001504);
-        u_tpu_bfm.read(32'h00001000, rdata);
+        u_tpu_bfm.read(16'h1000, rdata);
         check_data("STR-I2C-TPU-4", rdata, 32'hC5001504);
-        u_ppu_bfm.read(32'h00002004, rdata);
+        u_ppu_bfm.read(24'h002004, rdata);
         check_data("STR-I2C-PPU-4", rdata, 32'hC5001504);
         fork
-          begin u_cpu0_bfm.write(32'h0001000C, 32'hC5001605); end
-          begin u_cpu1_bfm.write(32'h00002000, 32'hC5001605); end
-          begin u_gpu_bfm.write(32'h00001004, 32'hC5001605); end
-          begin u_npu_bfm.write(32'h00000008, 32'hC5001605); end
-          begin u_tpu_bfm.write(32'h0000100C, 32'hC5001605); end
-          begin u_ppu_bfm.write(32'h00002000, 32'hC5001605); end
+          begin u_cpu0_bfm.write(24'h01000C, 32'hC5001605); end
+          begin u_cpu1_bfm.write(16'h2000, 32'hC5001605); end
+          begin u_gpu_bfm.write(24'h001004, 32'hC5001605); end
+          begin u_npu_bfm.write(24'h000008, 32'hC5001605); end
+          begin u_tpu_bfm.write(16'h100C, 32'hC5001605); end
+          begin u_ppu_bfm.write(24'h002000, 32'hC5001605); end
         join
-        u_cpu0_bfm.read(32'h0001000C, rdata);
+        u_cpu0_bfm.read(24'h01000C, rdata);
         check_data("STR-I2C-CPU0-5", rdata, 32'hC5001605);
-        u_cpu1_bfm.read(32'h00002000, rdata);
+        u_cpu1_bfm.read(16'h2000, rdata);
         check_data("STR-I2C-CPU1-5", rdata, 32'hC5001605);
-        u_gpu_bfm.read(32'h00001004, rdata);
+        u_gpu_bfm.read(24'h001004, rdata);
         check_data("STR-I2C-GPU-5", rdata, 32'hC5001605);
-        u_npu_bfm.read(32'h00000008, rdata);
+        u_npu_bfm.read(24'h000008, rdata);
         check_data("STR-I2C-NPU-5", rdata, 32'hC5001605);
-        u_tpu_bfm.read(32'h0000100C, rdata);
+        u_tpu_bfm.read(16'h100C, rdata);
         check_data("STR-I2C-TPU-5", rdata, 32'hC5001605);
-        u_ppu_bfm.read(32'h00002000, rdata);
+        u_ppu_bfm.read(24'h002000, rdata);
         check_data("STR-I2C-PPU-5", rdata, 32'hC5001605);
         fork
-          begin u_cpu0_bfm.write(32'h00010008, 32'hC5001706); end
-          begin u_cpu1_bfm.write(32'h0000200C, 32'hC5001706); end
-          begin u_gpu_bfm.write(32'h00001000, 32'hC5001706); end
-          begin u_npu_bfm.write(32'h00000004, 32'hC5001706); end
-          begin u_tpu_bfm.write(32'h00001008, 32'hC5001706); end
-          begin u_ppu_bfm.write(32'h0000200C, 32'hC5001706); end
+          begin u_cpu0_bfm.write(24'h010008, 32'hC5001706); end
+          begin u_cpu1_bfm.write(16'h200C, 32'hC5001706); end
+          begin u_gpu_bfm.write(24'h001000, 32'hC5001706); end
+          begin u_npu_bfm.write(24'h000004, 32'hC5001706); end
+          begin u_tpu_bfm.write(16'h1008, 32'hC5001706); end
+          begin u_ppu_bfm.write(24'h00200C, 32'hC5001706); end
         join
-        u_cpu0_bfm.read(32'h00010008, rdata);
+        u_cpu0_bfm.read(24'h010008, rdata);
         check_data("STR-I2C-CPU0-6", rdata, 32'hC5001706);
-        u_cpu1_bfm.read(32'h0000200C, rdata);
+        u_cpu1_bfm.read(16'h200C, rdata);
         check_data("STR-I2C-CPU1-6", rdata, 32'hC5001706);
-        u_gpu_bfm.read(32'h00001000, rdata);
+        u_gpu_bfm.read(24'h001000, rdata);
         check_data("STR-I2C-GPU-6", rdata, 32'hC5001706);
-        u_npu_bfm.read(32'h00000004, rdata);
+        u_npu_bfm.read(24'h000004, rdata);
         check_data("STR-I2C-NPU-6", rdata, 32'hC5001706);
-        u_tpu_bfm.read(32'h00001008, rdata);
+        u_tpu_bfm.read(16'h1008, rdata);
         check_data("STR-I2C-TPU-6", rdata, 32'hC5001706);
-        u_ppu_bfm.read(32'h0000200C, rdata);
+        u_ppu_bfm.read(24'h00200C, rdata);
         check_data("STR-I2C-PPU-6", rdata, 32'hC5001706);
         fork
-          begin u_cpu0_bfm.write(32'h00010004, 32'hC5001807); end
-          begin u_cpu1_bfm.write(32'h00002008, 32'hC5001807); end
-          begin u_gpu_bfm.write(32'h0000100C, 32'hC5001807); end
-          begin u_npu_bfm.write(32'h00000000, 32'hC5001807); end
-          begin u_tpu_bfm.write(32'h00001004, 32'hC5001807); end
-          begin u_ppu_bfm.write(32'h00002008, 32'hC5001807); end
+          begin u_cpu0_bfm.write(24'h010004, 32'hC5001807); end
+          begin u_cpu1_bfm.write(16'h2008, 32'hC5001807); end
+          begin u_gpu_bfm.write(24'h00100C, 32'hC5001807); end
+          begin u_npu_bfm.write(24'h000000, 32'hC5001807); end
+          begin u_tpu_bfm.write(16'h1004, 32'hC5001807); end
+          begin u_ppu_bfm.write(24'h002008, 32'hC5001807); end
         join
-        u_cpu0_bfm.read(32'h00010004, rdata);
+        u_cpu0_bfm.read(24'h010004, rdata);
         check_data("STR-I2C-CPU0-7", rdata, 32'hC5001807);
-        u_cpu1_bfm.read(32'h00002008, rdata);
+        u_cpu1_bfm.read(16'h2008, rdata);
         check_data("STR-I2C-CPU1-7", rdata, 32'hC5001807);
-        u_gpu_bfm.read(32'h0000100C, rdata);
+        u_gpu_bfm.read(24'h00100C, rdata);
         check_data("STR-I2C-GPU-7", rdata, 32'hC5001807);
-        u_npu_bfm.read(32'h00000000, rdata);
+        u_npu_bfm.read(24'h000000, rdata);
         check_data("STR-I2C-NPU-7", rdata, 32'hC5001807);
-        u_tpu_bfm.read(32'h00001004, rdata);
+        u_tpu_bfm.read(16'h1004, rdata);
         check_data("STR-I2C-TPU-7", rdata, 32'hC5001807);
-        u_ppu_bfm.read(32'h00002008, rdata);
+        u_ppu_bfm.read(24'h002008, rdata);
         check_data("STR-I2C-PPU-7", rdata, 32'hC5001807);
       end
       begin
@@ -1187,9 +1197,9 @@ module tb;
             for (rr_k_cpu0 = 0; rr_k_cpu0 < 4; rr_k_cpu0++) begin
               rr_wop_cpu0 = rr_k_cpu0 * 2;
               rr_rop_cpu0 = rr_wop_cpu0 + 1;
-              u_cpu0_bfm.write(32'h00010000, (32'hD5001200 + rr_k_cpu0));
+              u_cpu0_bfm.write(24'h010000, (32'hD5001200 + rr_k_cpu0));
               rr_done_t_i2c[0][rr_wop_cpu0] = $time;
-              u_cpu0_bfm.read(32'h00010000, rr_rd_cpu0);
+              u_cpu0_bfm.read(24'h010000, rr_rd_cpu0);
               check_data($sformatf("RRRW-I2C-CPU0-%0d", rr_k_cpu0), rr_rd_cpu0, (32'hD5001200 + rr_k_cpu0));
               rr_done_t_i2c[0][rr_rop_cpu0] = $time;
             end
@@ -1202,9 +1212,9 @@ module tb;
             for (rr_k_cpu1 = 0; rr_k_cpu1 < 4; rr_k_cpu1++) begin
               rr_wop_cpu1 = rr_k_cpu1 * 2;
               rr_rop_cpu1 = rr_wop_cpu1 + 1;
-              u_cpu1_bfm.write(32'h00002004, (32'hD5001200 + rr_k_cpu1));
+              u_cpu1_bfm.write(16'h2004, (32'hD5001200 + rr_k_cpu1));
               rr_done_t_i2c[1][rr_wop_cpu1] = $time;
-              u_cpu1_bfm.read(32'h00002004, rr_rd_cpu1);
+              u_cpu1_bfm.read(16'h2004, rr_rd_cpu1);
               check_data($sformatf("RRRW-I2C-CPU1-%0d", rr_k_cpu1), rr_rd_cpu1, (32'hD5001200 + rr_k_cpu1));
               rr_done_t_i2c[1][rr_rop_cpu1] = $time;
             end
@@ -1217,9 +1227,9 @@ module tb;
             for (rr_k_gpu = 0; rr_k_gpu < 4; rr_k_gpu++) begin
               rr_wop_gpu = rr_k_gpu * 2;
               rr_rop_gpu = rr_wop_gpu + 1;
-              u_gpu_bfm.write(32'h00001008, (32'hD5001200 + rr_k_gpu));
+              u_gpu_bfm.write(24'h001008, (32'hD5001200 + rr_k_gpu));
               rr_done_t_i2c[2][rr_wop_gpu] = $time;
-              u_gpu_bfm.read(32'h00001008, rr_rd_gpu);
+              u_gpu_bfm.read(24'h001008, rr_rd_gpu);
               check_data($sformatf("RRRW-I2C-GPU-%0d", rr_k_gpu), rr_rd_gpu, (32'hD5001200 + rr_k_gpu));
               rr_done_t_i2c[2][rr_rop_gpu] = $time;
             end
@@ -1232,9 +1242,9 @@ module tb;
             for (rr_k_npu = 0; rr_k_npu < 4; rr_k_npu++) begin
               rr_wop_npu = rr_k_npu * 2;
               rr_rop_npu = rr_wop_npu + 1;
-              u_npu_bfm.write(32'h0000000C, (32'hD5001200 + rr_k_npu));
+              u_npu_bfm.write(24'h00000C, (32'hD5001200 + rr_k_npu));
               rr_done_t_i2c[3][rr_wop_npu] = $time;
-              u_npu_bfm.read(32'h0000000C, rr_rd_npu);
+              u_npu_bfm.read(24'h00000C, rr_rd_npu);
               check_data($sformatf("RRRW-I2C-NPU-%0d", rr_k_npu), rr_rd_npu, (32'hD5001200 + rr_k_npu));
               rr_done_t_i2c[3][rr_rop_npu] = $time;
             end
@@ -1247,9 +1257,9 @@ module tb;
             for (rr_k_tpu = 0; rr_k_tpu < 4; rr_k_tpu++) begin
               rr_wop_tpu = rr_k_tpu * 2;
               rr_rop_tpu = rr_wop_tpu + 1;
-              u_tpu_bfm.write(32'h00001000, (32'hD5001200 + rr_k_tpu));
+              u_tpu_bfm.write(16'h1000, (32'hD5001200 + rr_k_tpu));
               rr_done_t_i2c[4][rr_wop_tpu] = $time;
-              u_tpu_bfm.read(32'h00001000, rr_rd_tpu);
+              u_tpu_bfm.read(16'h1000, rr_rd_tpu);
               check_data($sformatf("RRRW-I2C-TPU-%0d", rr_k_tpu), rr_rd_tpu, (32'hD5001200 + rr_k_tpu));
               rr_done_t_i2c[4][rr_rop_tpu] = $time;
             end
@@ -1262,9 +1272,9 @@ module tb;
             for (rr_k_ppu = 0; rr_k_ppu < 4; rr_k_ppu++) begin
               rr_wop_ppu = rr_k_ppu * 2;
               rr_rop_ppu = rr_wop_ppu + 1;
-              u_ppu_bfm.write(32'h00002004, (32'hD5001200 + rr_k_ppu));
+              u_ppu_bfm.write(24'h002004, (32'hD5001200 + rr_k_ppu));
               rr_done_t_i2c[5][rr_wop_ppu] = $time;
-              u_ppu_bfm.read(32'h00002004, rr_rd_ppu);
+              u_ppu_bfm.read(24'h002004, rr_rd_ppu);
               check_data($sformatf("RRRW-I2C-PPU-%0d", rr_k_ppu), rr_rd_ppu, (32'hD5001200 + rr_k_ppu));
               rr_done_t_i2c[5][rr_rop_ppu] = $time;
             end
@@ -1311,15 +1321,15 @@ module tb;
       begin
         $display("Running 3-way contention I2C: CPU0 || CPU1 || GPU");
         fork
-          begin u_cpu0_bfm.write(32'h00010000, 32'hB1001011); end
-          begin u_cpu1_bfm.write(32'h00002004, 32'hB2001322); end
-          begin u_gpu_bfm.write(32'h00001008, 32'hB3001333); end
+          begin u_cpu0_bfm.write(24'h010000, 32'hB1001011); end
+          begin u_cpu1_bfm.write(16'h2004, 32'hB2001322); end
+          begin u_gpu_bfm.write(24'h001008, 32'hB3001333); end
         join
-        u_cpu0_bfm.read(32'h00010000, rdata);
+        u_cpu0_bfm.read(24'h010000, rdata);
         check_data("ARB3-I2C-CPU0", rdata, 32'hB1001011);
-        u_cpu1_bfm.read(32'h00002004, rdata);
+        u_cpu1_bfm.read(16'h2004, rdata);
         check_data("ARB3-I2C-CPU1", rdata, 32'hB2001322);
-        u_gpu_bfm.read(32'h00001008, rdata);
+        u_gpu_bfm.read(24'h001008, rdata);
         check_data("ARB3-I2C-GPU", rdata, 32'hB3001333);
       end
       begin

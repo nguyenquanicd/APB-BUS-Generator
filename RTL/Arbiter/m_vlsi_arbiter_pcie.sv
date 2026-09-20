@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_arbiter_pcie
 //Function: APB Arbiter
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -14,7 +14,7 @@ module m_vlsi_arbiter_pcie (
   // ============================================================================
   input  logic          i_clk,
   input  logic          i_rstn,
-  output logic [23:0]   o_paddr,
+  output logic [19:0]   o_paddr,
   output logic          o_protect_en,
   output logic          o_slverr_en,
   output logic [2:0]    o_pprot,
@@ -29,7 +29,7 @@ module m_vlsi_arbiter_pcie (
   // ============================================================================
   // Master Interface: GPU
   // ============================================================================
-  input  logic [23:0]   i_paddr_gpu,
+  input  logic [19:0]   i_paddr_gpu,
   input  logic          i_protect_en_gpu,
   input  logic          i_slverr_en_gpu,
   input  logic [2:0]    i_pprot_gpu,

@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_apb_router
 //Function: APB Router Top-Level
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -33,7 +33,7 @@ module m_vlsi_apb_router (
   output logic [31:0]   o_prdata_cpu0,
 
   // Master: CPU1
-  input  logic [23:0]   i_paddr_cpu1,
+  input  logic [15:0]   i_paddr_cpu1,
   input  logic          i_protect_en_cpu1,
   input  logic          i_slverr_en_cpu1,
   input  logic [2:0]    i_pprot_cpu1,
@@ -75,7 +75,7 @@ module m_vlsi_apb_router (
   output logic [31:0]   o_prdata_npu,
 
   // Master: TPU
-  input  logic [23:0]   i_paddr_tpu,
+  input  logic [15:0]   i_paddr_tpu,
   input  logic          i_protect_en_tpu,
   input  logic          i_slverr_en_tpu,
   input  logic [2:0]    i_pprot_tpu,
@@ -106,7 +106,7 @@ module m_vlsi_apb_router (
   // Slave Interfaces
   // ============================================================================
   // Slave: UART
-  output logic [23:0]   o_paddr_uart,
+  output logic [7:0]   o_paddr_uart,
   output logic          o_protect_en_uart,
   output logic          o_slverr_en_uart,
   output logic [2:0]    o_pprot_uart,
@@ -120,7 +120,7 @@ module m_vlsi_apb_router (
   input  logic [31:0]   i_prdata_uart,
 
   // Slave: I2C
-  output logic [23:0]   o_paddr_i2c,
+  output logic [3:0]   o_paddr_i2c,
   output logic          o_protect_en_i2c,
   output logic          o_slverr_en_i2c,
   output logic [2:0]    o_pprot_i2c,
@@ -134,7 +134,7 @@ module m_vlsi_apb_router (
   input  logic [31:0]   i_prdata_i2c,
 
   // Slave: SPI
-  output logic [23:0]   o_paddr_spi,
+  output logic [11:0]   o_paddr_spi,
   output logic          o_protect_en_spi,
   output logic          o_slverr_en_spi,
   output logic [2:0]    o_pprot_spi,
@@ -148,7 +148,7 @@ module m_vlsi_apb_router (
   input  logic [31:0]   i_prdata_spi,
 
   // Slave: CAN
-  output logic [23:0]   o_paddr_can,
+  output logic [14:0]   o_paddr_can,
   output logic          o_protect_en_can,
   output logic          o_slverr_en_can,
   output logic [2:0]    o_pprot_can,
@@ -162,7 +162,7 @@ module m_vlsi_apb_router (
   input  logic [31:0]   i_prdata_can,
 
   // Slave: PWM
-  output logic [23:0]   o_paddr_pwm,
+  output logic [7:0]   o_paddr_pwm,
   output logic          o_protect_en_pwm,
   output logic          o_slverr_en_pwm,
   output logic [2:0]    o_pprot_pwm,
@@ -176,7 +176,7 @@ module m_vlsi_apb_router (
   input  logic [31:0]   i_prdata_pwm,
 
   // Slave: PCIE
-  output logic [23:0]   o_paddr_pcie,
+  output logic [19:0]   o_paddr_pcie,
   output logic          o_protect_en_pcie,
   output logic          o_slverr_en_pcie,
   output logic [2:0]    o_pprot_pcie,
@@ -194,7 +194,7 @@ module m_vlsi_apb_router (
   // Internal Interconnect Wires
   // ============================================================================
   // Decoder <-> Arbiter per master-slave connections
-  logic [23:0]   w_dec_paddr_i2c_cpu0;
+  logic [3:0]   w_dec_paddr_i2c_cpu0;
   logic          w_dec_protect_en_i2c_cpu0;
   logic          w_dec_slverr_en_i2c_cpu0;
   logic [2:0]    w_dec_pprot_i2c_cpu0;
@@ -206,7 +206,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_i2c_cpu0;
   logic          w_arb_pready_i2c_cpu0;
   logic [31:0]   w_arb_prdata_i2c_cpu0;
-  logic [23:0]   w_dec_paddr_pwm_cpu0;
+  logic [7:0]   w_dec_paddr_pwm_cpu0;
   logic          w_dec_protect_en_pwm_cpu0;
   logic          w_dec_slverr_en_pwm_cpu0;
   logic [2:0]    w_dec_pprot_pwm_cpu0;
@@ -218,7 +218,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_pwm_cpu0;
   logic          w_arb_pready_pwm_cpu0;
   logic [31:0]   w_arb_prdata_pwm_cpu0;
-  logic [23:0]   w_dec_paddr_uart_cpu0;
+  logic [7:0]   w_dec_paddr_uart_cpu0;
   logic          w_dec_protect_en_uart_cpu0;
   logic          w_dec_slverr_en_uart_cpu0;
   logic [2:0]    w_dec_pprot_uart_cpu0;
@@ -230,7 +230,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_uart_cpu0;
   logic          w_arb_pready_uart_cpu0;
   logic [31:0]   w_arb_prdata_uart_cpu0;
-  logic [23:0]   w_dec_paddr_can_cpu1;
+  logic [14:0]   w_dec_paddr_can_cpu1;
   logic          w_dec_protect_en_can_cpu1;
   logic          w_dec_slverr_en_can_cpu1;
   logic [2:0]    w_dec_pprot_can_cpu1;
@@ -242,7 +242,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_can_cpu1;
   logic          w_arb_pready_can_cpu1;
   logic [31:0]   w_arb_prdata_can_cpu1;
-  logic [23:0]   w_dec_paddr_i2c_cpu1;
+  logic [3:0]   w_dec_paddr_i2c_cpu1;
   logic          w_dec_protect_en_i2c_cpu1;
   logic          w_dec_slverr_en_i2c_cpu1;
   logic [2:0]    w_dec_pprot_i2c_cpu1;
@@ -254,7 +254,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_i2c_cpu1;
   logic          w_arb_pready_i2c_cpu1;
   logic [31:0]   w_arb_prdata_i2c_cpu1;
-  logic [23:0]   w_dec_paddr_uart_cpu1;
+  logic [7:0]   w_dec_paddr_uart_cpu1;
   logic          w_dec_protect_en_uart_cpu1;
   logic          w_dec_slverr_en_uart_cpu1;
   logic [2:0]    w_dec_pprot_uart_cpu1;
@@ -266,7 +266,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_uart_cpu1;
   logic          w_arb_pready_uart_cpu1;
   logic [31:0]   w_arb_prdata_uart_cpu1;
-  logic [23:0]   w_dec_paddr_i2c_gpu;
+  logic [3:0]   w_dec_paddr_i2c_gpu;
   logic          w_dec_protect_en_i2c_gpu;
   logic          w_dec_slverr_en_i2c_gpu;
   logic [2:0]    w_dec_pprot_i2c_gpu;
@@ -278,7 +278,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_i2c_gpu;
   logic          w_arb_pready_i2c_gpu;
   logic [31:0]   w_arb_prdata_i2c_gpu;
-  logic [23:0]   w_dec_paddr_pcie_gpu;
+  logic [19:0]   w_dec_paddr_pcie_gpu;
   logic          w_dec_protect_en_pcie_gpu;
   logic          w_dec_slverr_en_pcie_gpu;
   logic [2:0]    w_dec_pprot_pcie_gpu;
@@ -290,7 +290,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_pcie_gpu;
   logic          w_arb_pready_pcie_gpu;
   logic [31:0]   w_arb_prdata_pcie_gpu;
-  logic [23:0]   w_dec_paddr_spi_gpu;
+  logic [11:0]   w_dec_paddr_spi_gpu;
   logic          w_dec_protect_en_spi_gpu;
   logic          w_dec_slverr_en_spi_gpu;
   logic [2:0]    w_dec_pprot_spi_gpu;
@@ -302,7 +302,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_spi_gpu;
   logic          w_arb_pready_spi_gpu;
   logic [31:0]   w_arb_prdata_spi_gpu;
-  logic [23:0]   w_dec_paddr_i2c_npu;
+  logic [3:0]   w_dec_paddr_i2c_npu;
   logic          w_dec_protect_en_i2c_npu;
   logic          w_dec_slverr_en_i2c_npu;
   logic [2:0]    w_dec_pprot_i2c_npu;
@@ -314,7 +314,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_i2c_npu;
   logic          w_arb_pready_i2c_npu;
   logic [31:0]   w_arb_prdata_i2c_npu;
-  logic [23:0]   w_dec_paddr_i2c_ppu;
+  logic [3:0]   w_dec_paddr_i2c_ppu;
   logic          w_dec_protect_en_i2c_ppu;
   logic          w_dec_slverr_en_i2c_ppu;
   logic [2:0]    w_dec_pprot_i2c_ppu;
@@ -326,7 +326,7 @@ module m_vlsi_apb_router (
   logic          w_arb_pslverr_i2c_ppu;
   logic          w_arb_pready_i2c_ppu;
   logic [31:0]   w_arb_prdata_i2c_ppu;
-  logic [23:0]   w_dec_paddr_i2c_tpu;
+  logic [3:0]   w_dec_paddr_i2c_tpu;
   logic          w_dec_protect_en_i2c_tpu;
   logic          w_dec_slverr_en_i2c_tpu;
   logic [2:0]    w_dec_pprot_i2c_tpu;

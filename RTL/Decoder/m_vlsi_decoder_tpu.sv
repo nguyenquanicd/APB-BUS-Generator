@@ -3,7 +3,7 @@
 //Project: APB BUS Generator
 //Module: m_vlsi_decoder_tpu
 //Function: APB Decoder
-//Author: ltthinh
+//Author: link
 //Script Author: Trthinh (Ethan), Thang Luong (superzeldalink)
 //Page: VLSI Technology
 //--------------------------------------
@@ -12,7 +12,7 @@ module m_vlsi_decoder_tpu (
   // ============================================================================
   // Interface of Master TPU
   // ============================================================================
-  input  logic [23:0]   i_paddr,
+  input  logic [15:0]   i_paddr,
   input  logic          i_protect_en,
   input  logic          i_slverr_en,
   input  logic [2:0]    i_pprot,
@@ -27,7 +27,7 @@ module m_vlsi_decoder_tpu (
   // ============================================================================
   // Interface of Slave I2C
   // ============================================================================
-  output logic [23:0]   o_paddr_i2c,  // to I2C
+  output logic [3:0]   o_paddr_i2c,  // to I2C
   output logic          o_protect_en_i2c,
   output logic          o_slverr_en_i2c,
   output logic [2:0]    o_pprot_i2c,
@@ -45,7 +45,7 @@ module m_vlsi_decoder_tpu (
   // ============================================================================
   // Address Decode Logic
   // ============================================================================
-  assign w_sel[0] = (i_paddr >= 24'h1000) & (i_paddr <= 24'h100F);  // I2C
+  assign w_sel[0] = (i_paddr >= 16'h1000) & (i_paddr <= 16'h100F);  // I2C
 
   // ============================================================================
   // PREADY, PSLVERR, PRDATA Logic
@@ -72,7 +72,7 @@ module m_vlsi_decoder_tpu (
   assign o_psel_i2c    = w_sel[0] & i_psel;
   assign o_penable_i2c = i_penable;
   assign o_pwrite_i2c  = i_pwrite;
-  assign o_paddr_i2c   = i_paddr - 24'h1000;
+  assign o_paddr_i2c   = 4'(i_paddr - 16'h1000);
   assign o_pwdata_i2c  = i_pwdata;
   assign o_pstrb_i2c   = i_pstrb;
   assign o_protect_en_i2c = i_protect_en;
